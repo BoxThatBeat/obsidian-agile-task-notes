@@ -1,9 +1,16 @@
 import { App, normalizePath, Notice, Plugin, PluginSettingTab, Setting, requestUrl } from 'obsidian';
 
 const TASK_TEMPLATE_MD: string = "# {0}\n{1}\n\n## Todo:\n- [ ] \n\n## Notes:\n"; // Title, Tags
-const BOARD_TEMPLATE_MD: string = "---\n\nkanban-plugin: basic\n\n---\n\n## Todo\n\n## In Progress\n\n## In Merge\n\n## In Verification\n\n## Complete\n**Complete**\n\n%% kanban:settings\n\`\`\`\n{\"kanban-plugin\":\"basic\"}\n\`\`\`%%\"";
+const BOARD_TEMPLATE_MD: string = "---\n\nkanban-plugin: basic\n\n---\n\n## Pending\n{0}\n## In Progress\n{1}\n## In Merge\n{2}\n## In Verification\n{3}\n## Closed\n**Complete**\n{4}\n%% kanban:settings\n\`\`\`\n{\"kanban-plugin\":\"basic\"}\n\`\`\`%%\"";
 
 const TASKS_QUERY: string = "{\"query\": \"Select [System.Id], [System.Title], [System.State] From WorkItems Where [Assigned to] = \'{0}\'\"}" // username
+
+// TODO: replace with columns pulled from Azure Devops
+const COLUMN_PENDING = "Pending";
+const COLUMN_IN_PROGRESS = "In Progress";
+const COLUMN_IN_MERGE = "In Merge";
+const COLUMN_IN_VERIFICATION = "In Verification";
+const COLUMN_CLOSED= "Closed";
 
 interface AzureDevopsPluginSettings {
 	instance: string;
@@ -63,8 +70,7 @@ export default class AzureDevopsPlugin extends Plugin {
 	}
 
   private async ensureFolderSetup() {
-    this.createFolders(this.settings.targetFolder)
-    
+    //this.createFolders(this.settings.targetFolder)
   }
 
   private async updateCurrentSprintBoard() {
@@ -89,22 +95,20 @@ export default class AzureDevopsPlugin extends Plugin {
 
         var currentSprint = responses[0].json.value[0];
         var userAssignedTaskIds = responses[1].json.workItems;
+        var normalizedFolderPath = normalizePath(currentSprint.path);
 
         Promise.all(userAssignedTaskIds.map((task: any) => requestUrl({ method: 'GET', headers: headers, url: task.url}).then((r) => r.json)))
           .then((userAssignedTasks) => {
 
             // Ensure folder structure created
-            this.createFolders(currentSprint.path);
-
-            console.log(userAssignedTasks);
+            this.createFolders(normalizedFolderPath);
 
             // Create markdown files based on remote task in current sprint
             var tasksInCurrentSprint = userAssignedTasks.filter(task => task.fields["System.IterationPath"] === currentSprint.path);
-            tasksInCurrentSprint.forEach(task => this.createTaskNote(task, currentSprint.path));
+            tasksInCurrentSprint.forEach(task => this.createTaskNote(normalizedFolderPath, task));
 
-            // Delete current board file
-
-            // Create new and updated board with links to tasks in sprint
+            // Create or replace Kanban board of current sprint
+            this.createKanbanBoard(normalizedFolderPath, tasksInCurrentSprint, currentSprint.name);
           });
       });
 
@@ -112,22 +116,52 @@ export default class AzureDevopsPlugin extends Plugin {
   }
 
   private createFolders(path: string) {
-    var normalizedFolderPath = normalizePath(path);
-    if (this.app.vault.getAbstractFileByPath(normalizedFolderPath) == null) {
-      this.app.vault.createFolder(normalizedFolderPath)
+    if (this.app.vault.getAbstractFileByPath(path) == null) {
+      this.app.vault.createFolder(path)
       .catch(err => console.log(err));
     }
   }
 
-  private createTaskNote(task: any, path: string) {
-    var fileName = `${task.fields["System.WorkItemType"]} - ${task.id}`;
-    var normalizedFolderPath = normalizePath(path);
+  private createTaskNote(path: string, task: any) {
+    var filename = this.formatTaskFilename(task.fields["System.WorkItemType"], task.id);
+    var filepath = path + `/${filename}.md`
 
-    if (this.app.vault.getAbstractFileByPath(normalizedFolderPath + `/${fileName}.md`) == null) {
-      this.app.vault.create(normalizedFolderPath + `/${fileName}.md`, 
-        TASK_TEMPLATE_MD.format(task.fields["System.Title"], `#${task.fields["System.WorkItemType"]}`))
-      .catch(err => console.log(err));
+    if (this.app.vault.getAbstractFileByPath(filepath) == null) {
+      this.app.vault.create(filepath, TASK_TEMPLATE_MD.format(task.fields["System.Title"], `#${task.fields["System.WorkItemType"]}`))
+        .catch(err => console.log(err));
     }
+  }
+
+  private createKanbanBoard(path: string, tasks: Array<any>, sprintName: string) {
+    var filename = `${sprintName}-Board`;
+    var filepath = path + `/${filename}.md`;
+    var file = this.app.vault.getAbstractFileByPath(filepath);
+
+    if (file != null) {
+      this.app.vault.delete(file, true);
+    }
+    
+    var tasksInPendingState = this.formatTaskLinks(this.filterTasksInColumnAsString(tasks, COLUMN_PENDING)).join('\n');
+    var tasksInProgressState = this.formatTaskLinks(this.filterTasksInColumnAsString(tasks, COLUMN_IN_PROGRESS)).join('\n');
+    var tasksInMergeState = this.formatTaskLinks(this.filterTasksInColumnAsString(tasks, COLUMN_IN_MERGE)).join('\n');
+    var tasksInVerificationState = this.formatTaskLinks(this.filterTasksInColumnAsString(tasks, COLUMN_IN_VERIFICATION)).join('\n');
+    var tasksInClosedState = this.formatTaskLinks(this.filterTasksInColumnAsString(tasks, COLUMN_CLOSED)).join('\n');
+
+
+    this.app.vault.create(filepath, BOARD_TEMPLATE_MD.format(tasksInPendingState,tasksInProgressState,tasksInMergeState,tasksInVerificationState,tasksInClosedState))
+        .catch(err => console.log(err));
+  }
+
+  private filterTasksInColumnAsString(tasks: Array<any>, column: string): Array<any> {
+    return tasks.filter(task => task.fields["System.State"] === column);
+  }
+
+  private formatTaskLinks(tasks: Array<any>): Array<string> {
+    return tasks.map(task => `- [ ] [[${this.formatTaskFilename(task.fields["System.WorkItemType"], task.id)}]]`);
+  }
+
+  private formatTaskFilename(type: string, id: number) {
+    return `${type} - ${id}`
   }
 }
 
