@@ -1,13 +1,17 @@
-import { App, Editor, MarkdownView, Modal, normalizePath, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, normalizePath, Notice, Plugin, PluginSettingTab, Setting, requestUrl } from 'obsidian';
 
 const TASK_TEMPLATE_MD: string = "# {0}\n{1}\n\n## Todo:\n- [ ] \n\n## Notes:\n"; // Title, Tags
 const BOARD_TEMPLATE_MD: string = "---\n\nkanban-plugin: basic\n\n---\n\n## Todo\n\n## In Progress\n\n## In Merge\n\n## In Verification\n\n## Complete\n**Complete**\n\n%% kanban:settings\n\`\`\`\n{\"kanban-plugin\":\"basic\"}\n\`\`\`%%\"";
+
+const TASKS_QUERY: string = "{\"query\": \"Select [System.Id], [System.Title], [System.State] From WorkItems Where [Assigned to] = \'{0}\'\"}" // username
 
 interface AzureDevopsPluginSettings {
 	instance: string;
   collection: string;
   project: string;
   team: string,
+  username: string,
+  accessToken: string,
   targetFolder: string
 }
 
@@ -16,6 +20,8 @@ const DEFAULT_SETTINGS: AzureDevopsPluginSettings = {
   collection: 'DefaultCollection',
   project: '',
   team: '',
+  username: '',
+  accessToken: '',
   targetFolder: 'Work/AgileSprints'
 }
 
@@ -28,12 +34,8 @@ export default class AzureDevopsPlugin extends Plugin {
 		// This creates an icon in the left ribbon.
 		this.addRibbonIcon('dice', 'Update Boards', (evt: MouseEvent) => {
       this.ensureFolderSetup();
-			this.updateAllBoards();
+			this.updateCurrentSprintBoard();
 		});
-
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		//const statusBarItemEl = this.addStatusBarItem();
-		//statusBarItemEl.setText('Status Bar Text');
 
 		// This adds a command that can be triggered anywhere
 		this.addCommand({
@@ -41,20 +43,11 @@ export default class AzureDevopsPlugin extends Plugin {
 			name: 'Update all Kanban boards',
 			callback: () => {
         this.ensureFolderSetup();
-				this.updateAllBoards();
+				this.updateCurrentSprintBoard();
 			}
 		});
 
 		this.addSettingTab(new AzureDevopsPluginSettingTab(this.app, this));
-
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		/*this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
-
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));*/
 	}
 
 	onunload() {
@@ -70,30 +63,63 @@ export default class AzureDevopsPlugin extends Plugin {
 	}
 
   private async ensureFolderSetup() {
-
-    
-
-    // Create folders if non-existant
-    this.createFolder(this.settings.targetFolder)
+    this.createFolders(this.settings.targetFolder)
     
   }
 
-  private async updateAllBoards() {
+  private async updateCurrentSprintBoard() {
 
-    // Create new files for each task and include tag 
-    if (this.app.vault.getAbstractFileByPath(normalizePath(this.settings.targetFolder) + "/testfile.md") == null) {
-      this.app.vault.create(normalizePath(this.settings.targetFolder) + "/testfile.md", TASK_TEMPLATE_MD.format('Test', '#bug'))
-      .catch(err => console.log(err));
+    const headers = {
+      "Authorization": `Basic ${this.settings.accessToken}`,
+      "Content-Type": "application/json"
     }
 
-    // Delete current board files
+    const baseURL = `https://${this.settings.instance}/${this.settings.collection}/${this.settings.project}`;
 
-    // Create new and updated boards
+    Promise.all([
+      requestUrl({ method: 'GET', headers: headers, url: `${baseURL}/${this.settings.team}/_apis/work/teamsettings/iterations?$timeframe=current&api-version=6.0` }),
+      requestUrl({method: 'POST', body: TASKS_QUERY.format(this.settings.username), headers: headers, url: `${baseURL}/${this.settings.team}/_apis/wit/wiql?api-version=6.0` })
+    ])
+      .then((responses) => {
+
+        if (responses[0].status != 200 || responses[1].status != 200) {
+          console.log("Azure Devops API Error.", responses);
+          return;
+        }
+
+        var currentIteration = responses[0].json.value[0];
+        var userAssignedTasks = responses[1].json.workItems;
+
+        // Ensure folder structure created
+        this.createFolders(currentIteration.path);
+
+        userAssignedTasks.forEach((workItem: any) => {
+          requestUrl({ method: 'GET', headers: headers, url: workItem.url })
+            .then((response) => {
+              if (response.status != 200) {
+                console.log("Azure Devops API Error.", response);
+                return;
+              }
+
+              // Create notes file based on work item
+              console.log(response.json.id);
+
+              /*if (this.app.vault.getAbstractFileByPath(normalizePath(this.settings.targetFolder) + "/testfile.md") == null) {
+                this.app.vault.create(normalizePath(this.settings.targetFolder) + "/testfile.md", TASK_TEMPLATE_MD.format('Test', '#bug'))
+                .catch(err => console.log(err));*/
+
+            });
+        });
+
+        // Delete current board files
+
+        // Create new and updated boards
+      });
 
     new Notice('Updated all Kanban boards successfully!');
   }
 
-  private async createFolder(path: string) {
+  private createFolders(path: string) {
     var normalizedFolderPath = normalizePath(path);
     if (this.app.vault.getAbstractFileByPath(normalizedFolderPath) == null) {
       this.app.vault.createFolder(normalizedFolderPath)
@@ -101,24 +127,6 @@ export default class AzureDevopsPlugin extends Plugin {
     }
   }
 }
-
-/*
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		const {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
-	}
-}
-*/
 
 class AzureDevopsPluginSettingTab extends PluginSettingTab {
 	plugin: AzureDevopsPlugin;
@@ -176,6 +184,28 @@ class AzureDevopsPluginSettingTab extends PluginSettingTab {
       .setValue(this.plugin.settings.team)
       .onChange(async (value) => {
         this.plugin.settings.team = value;
+        await this.plugin.saveSettings();
+      }));
+
+    new Setting(containerEl)
+    .setName('Username')
+    .setDesc('Your AzureDevops username (display name)')
+    .addText(text => text
+      .setPlaceholder('Enter your name')
+      .setValue(this.plugin.settings.username)
+      .onChange(async (value) => {
+        this.plugin.settings.username = value;
+        await this.plugin.saveSettings();
+      }));
+
+    new Setting(containerEl)
+    .setName('Personal Access Token')
+    .setDesc('Your AzureDevops PAT with full access')
+    .addText(text => text
+      .setPlaceholder('Enter your PAT')
+      .setValue(this.plugin.settings.accessToken)
+      .onChange(async (value) => {
+        this.plugin.settings.accessToken = value;
         await this.plugin.saveSettings();
       }));
 
