@@ -74,11 +74,11 @@ export default class AzureDevopsPlugin extends Plugin {
       "Content-Type": "application/json"
     }
 
-    const baseURL = `https://${this.settings.instance}/${this.settings.collection}/${this.settings.project}`;
+    const BaseURL = `https://${this.settings.instance}/${this.settings.collection}/${this.settings.project}`;
 
     Promise.all([
-      requestUrl({ method: 'GET', headers: headers, url: `${baseURL}/${this.settings.team}/_apis/work/teamsettings/iterations?$timeframe=current&api-version=6.0` }),
-      requestUrl({method: 'POST', body: TASKS_QUERY.format(this.settings.username), headers: headers, url: `${baseURL}/${this.settings.team}/_apis/wit/wiql?api-version=6.0` })
+      requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/${this.settings.team}/_apis/work/teamsettings/iterations?$timeframe=current&api-version=6.0` }),
+      requestUrl({method: 'POST', body: TASKS_QUERY.format(this.settings.username), headers: headers, url: `${BaseURL}/${this.settings.team}/_apis/wit/wiql?api-version=6.0` })
     ])
       .then((responses) => {
 
@@ -87,33 +87,25 @@ export default class AzureDevopsPlugin extends Plugin {
           return;
         }
 
-        var currentIteration = responses[0].json.value[0];
-        var userAssignedTasks = responses[1].json.workItems;
+        var currentSprint = responses[0].json.value[0];
+        var userAssignedTaskIds = responses[1].json.workItems;
 
-        // Ensure folder structure created
-        this.createFolders(currentIteration.path);
+        Promise.all(userAssignedTaskIds.map((task: any) => requestUrl({ method: 'GET', headers: headers, url: task.url}).then((r) => r.json)))
+          .then((userAssignedTasks) => {
 
-        userAssignedTasks.forEach((workItem: any) => {
-          requestUrl({ method: 'GET', headers: headers, url: workItem.url })
-            .then((response) => {
-              if (response.status != 200) {
-                console.log("Azure Devops API Error.", response);
-                return;
-              }
+            // Ensure folder structure created
+            this.createFolders(currentSprint.path);
 
-              // Create notes file based on work item
-              console.log(response.json.id);
+            console.log(userAssignedTasks);
 
-              /*if (this.app.vault.getAbstractFileByPath(normalizePath(this.settings.targetFolder) + "/testfile.md") == null) {
-                this.app.vault.create(normalizePath(this.settings.targetFolder) + "/testfile.md", TASK_TEMPLATE_MD.format('Test', '#bug'))
-                .catch(err => console.log(err));*/
+            // Create markdown files based on remote task in current sprint
+            var tasksInCurrentSprint = userAssignedTasks.filter(task => task.fields["System.IterationPath"] === currentSprint.path);
+            tasksInCurrentSprint.forEach(task => this.createTaskNote(task, currentSprint.path));
 
-            });
-        });
+            // Delete current board file
 
-        // Delete current board files
-
-        // Create new and updated boards
+            // Create new and updated board with links to tasks in sprint
+          });
       });
 
     new Notice('Updated all Kanban boards successfully!');
@@ -123,6 +115,17 @@ export default class AzureDevopsPlugin extends Plugin {
     var normalizedFolderPath = normalizePath(path);
     if (this.app.vault.getAbstractFileByPath(normalizedFolderPath) == null) {
       this.app.vault.createFolder(normalizedFolderPath)
+      .catch(err => console.log(err));
+    }
+  }
+
+  private createTaskNote(task: any, path: string) {
+    var fileName = `${task.fields["System.WorkItemType"]} - ${task.id}`;
+    var normalizedFolderPath = normalizePath(path);
+
+    if (this.app.vault.getAbstractFileByPath(normalizedFolderPath + `/${fileName}.md`) == null) {
+      this.app.vault.create(normalizedFolderPath + `/${fileName}.md`, 
+        TASK_TEMPLATE_MD.format(task.fields["System.Title"], `#${task.fields["System.WorkItemType"]}`))
       .catch(err => console.log(err));
     }
   }
