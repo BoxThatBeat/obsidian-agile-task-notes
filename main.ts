@@ -1,19 +1,22 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, normalizePath, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 
-// Remember to rename these classes and interfaces!
+const TASK_TEMPLATE_MD: string = "# {0}\n{1}\n\n## Todo:\n- [ ] \n\n## Notes:\n"; // Title, Tags
+const BOARD_TEMPLATE_MD: string = "---\n\nkanban-plugin: basic\n\n---\n\n## Todo\n\n## In Progress\n\n## In Merge\n\n## In Verification\n\n## Complete\n**Complete**\n\n%% kanban:settings\n\`\`\`\n{\"kanban-plugin\":\"basic\"}\n\`\`\`%%\"";
 
 interface AzureDevopsPluginSettings {
 	instance: string;
   collection: string;
   project: string;
-  team: string
+  team: string,
+  targetFolder: string
 }
 
 const DEFAULT_SETTINGS: AzureDevopsPluginSettings = {
 	instance: '',
   collection: 'DefaultCollection',
   project: '',
-  team: ''
+  team: '',
+  targetFolder: 'Work/AgileSprints'
 }
 
 export default class AzureDevopsPlugin extends Plugin {
@@ -23,7 +26,8 @@ export default class AzureDevopsPlugin extends Plugin {
 		await this.loadSettings();
 
 		// This creates an icon in the left ribbon.
-		this.addRibbonIcon('dice', 'UpdateBoards', (evt: MouseEvent) => {
+		this.addRibbonIcon('dice', 'Update Boards', (evt: MouseEvent) => {
+      this.ensureFolderSetup();
 			this.updateAllBoards();
 		});
 
@@ -36,6 +40,7 @@ export default class AzureDevopsPlugin extends Plugin {
 			id: 'update-all-boards',
 			name: 'Update all Kanban boards',
 			callback: () => {
+        this.ensureFolderSetup();
 				this.updateAllBoards();
 			}
 		});
@@ -64,12 +69,40 @@ export default class AzureDevopsPlugin extends Plugin {
 		await this.saveData(this.settings);
 	}
 
+  private async ensureFolderSetup() {
+
+    
+
+    // Create folders if non-existant
+    this.createFolder(this.settings.targetFolder)
+    
+  }
+
   private async updateAllBoards() {
+
+    // Create new files for each task and include tag 
+    if (this.app.vault.getAbstractFileByPath(normalizePath(this.settings.targetFolder) + "/testfile.md") == null) {
+      this.app.vault.create(normalizePath(this.settings.targetFolder) + "/testfile.md", TASK_TEMPLATE_MD.format('Test', '#bug'))
+      .catch(err => console.log(err));
+    }
+
+    // Delete current board files
+
+    // Create new and updated boards
 
     new Notice('Updated all Kanban boards successfully!');
   }
+
+  private async createFolder(path: string) {
+    var normalizedFolderPath = normalizePath(path);
+    if (this.app.vault.getAbstractFileByPath(normalizedFolderPath) == null) {
+      this.app.vault.createFolder(normalizedFolderPath)
+      .catch(err => console.log(err));
+    }
+  }
 }
 
+/*
 class SampleModal extends Modal {
 	constructor(app: App) {
 		super(app);
@@ -85,6 +118,7 @@ class SampleModal extends Modal {
 		contentEl.empty();
 	}
 }
+*/
 
 class AzureDevopsPluginSettingTab extends PluginSettingTab {
 	plugin: AzureDevopsPlugin;
@@ -144,5 +178,19 @@ class AzureDevopsPluginSettingTab extends PluginSettingTab {
         this.plugin.settings.team = value;
         await this.plugin.saveSettings();
       }));
+
+    containerEl.createEl('h2', {text: 'Local Folder Settings'});
+
+    new Setting(containerEl)
+    .setName('Target Boards Folder')
+    .setDesc('The relative path to the folder in which to create/update Kanban boards')
+    .addText(text => text
+      .setPlaceholder('Enter target folder')
+      .setValue(this.plugin.settings.targetFolder)
+      .onChange(async (value) => {
+        this.plugin.settings.targetFolder = value;
+        await this.plugin.saveSettings();
+      }));
+
 	}
 }
