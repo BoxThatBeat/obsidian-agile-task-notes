@@ -40,7 +40,6 @@ export default class AzureDevopsPlugin extends Plugin {
 
 		// This creates an icon in the left ribbon.
 		this.addRibbonIcon('dice', 'Update Boards', (evt: MouseEvent) => {
-      this.ensureFolderSetup();
 			this.updateCurrentSprintBoard();
 		});
 
@@ -49,7 +48,6 @@ export default class AzureDevopsPlugin extends Plugin {
 			id: 'update-all-boards',
 			name: 'Update all Kanban boards',
 			callback: () => {
-        this.ensureFolderSetup();
 				this.updateCurrentSprintBoard();
 			}
 		});
@@ -68,10 +66,6 @@ export default class AzureDevopsPlugin extends Plugin {
 	async saveSettings() {
 		await this.saveData(this.settings);
 	}
-
-  private async ensureFolderSetup() {
-    //this.createFolders(this.settings.targetFolder)
-  }
 
   private async updateCurrentSprintBoard() {
 
@@ -98,7 +92,7 @@ export default class AzureDevopsPlugin extends Plugin {
 
         var currentSprint = responses[0].json.value[0];
         var userAssignedTaskIds = responses[1].json.workItems;
-        var normalizedFolderPath = normalizePath(currentSprint.path);
+        var normalizedFolderPath =  normalizePath(this.settings.targetFolder + '/' + currentSprint.path);
 
         Promise.all(userAssignedTaskIds.map((task: any) => requestUrl({ method: 'GET', headers: headers, url: task.url}).then((r) => r.json)))
           .then((userAssignedTasks) => {
@@ -250,11 +244,11 @@ class AzureDevopsPluginSettingTab extends PluginSettingTab {
         await this.plugin.saveSettings();
       }));
 
-    containerEl.createEl('h2', {text: 'Local Folder Settings'});
+    containerEl.createEl('h2', {text: 'Plugin Settings'});
 
     new Setting(containerEl)
-    .setName('Target Boards Folder')
-    .setDesc('The relative path to the folder in which to create/update Kanban boards')
+    .setName('Target Folder (Optional)')
+    .setDesc('The relative path to the parent folder in which to create/update Kanban boards')
     .addText(text => text
       .setPlaceholder('Enter target folder')
       .setValue(this.plugin.settings.targetFolder)
