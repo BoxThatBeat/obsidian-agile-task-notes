@@ -158,7 +158,7 @@ export default class AzureDevopsPlugin extends Plugin {
   }
 
   private formatTaskLinks(tasks: Array<any>): Array<string> {
-    return tasks.map(task => `- [ ] [[${this.formatTaskFilename(task.fields["System.WorkItemType"], task.id)}]]`);
+    return tasks.map(task => `- [ ] [[${this.formatTaskFilename(task.fields["System.WorkItemType"], task.id)}]] \n ${task.fields["System.Title"]}`);
   }
 
   private formatTaskFilename(type: string, id: number) {
