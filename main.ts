@@ -1,6 +1,6 @@
 import { App, normalizePath, Notice, Plugin, PluginSettingTab, Setting, requestUrl } from 'obsidian';
 
-const TASK_TEMPLATE_MD: string = "# {0}\n{1}\n\n#todo:\n- [ ] \n\n## Notes:\n"; // Title, Tags
+const TASK_TEMPLATE_MD: string = "# {0}\n{1}\n\nLink: {2}\n\n#todo:\n- [ ] \n\n## Notes:\n"; // Title, Tags
 const BOARD_TEMPLATE_MD: string = "---\n\nkanban-plugin: basic\n\n---\n\n## Pending\n{0}\n## In Progress\n{1}\n## In Merge\n{2}\n## In Verification\n{3}\n## Closed\n**Complete**\n{4}\n%% kanban:settings\n\`\`\`\n{\"kanban-plugin\":\"basic\"}\n\`\`\`%%\"";
 
 const TASKS_QUERY: string = "{\"query\": \"Select [System.Id], [System.Title], [System.State] From WorkItems Where [Assigned to] = \'{0}\'\"}" // username
@@ -125,10 +125,11 @@ export default class AzureDevopsPlugin extends Plugin {
 
   private createTaskNote(path: string, task: any) {
     var filename = this.formatTaskFilename(task.fields["System.WorkItemType"], task.id);
-    var filepath = path + `/${filename}.md`
+    var filepath = path + `/${filename}.md`;
+    var originalLink = `https://${this.settings.instance}/${this.settings.collection}/${this.settings.project}/_workitems/edit/${task.id}`;
 
-    if (this.app.vault.getAbstractFileByPath(filepath) == null) {
-      this.app.vault.create(filepath, TASK_TEMPLATE_MD.format(task.fields["System.Title"], `#${task.fields["System.WorkItemType"].replace(/ /g,'')}`))
+    if (this.app.vault.getAbstractFileByPath(filepath) == null) { //TODO: instead check  if the task number is contained in any file name in the system (so that users can change their task titles)
+      this.app.vault.create(filepath, TASK_TEMPLATE_MD.format(task.fields["System.Title"], `#${task.fields["System.WorkItemType"].replace(/ /g,'')}`, originalLink))
         .catch(err => console.log(err));
     }
   }
