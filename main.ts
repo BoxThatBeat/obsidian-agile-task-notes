@@ -90,6 +90,7 @@ export default class AzureDevopsPlugin extends Plugin {
 
         if (responses[0].status != 200 || responses[1].status != 200) {
           console.log("Azure Devops API Error.", responses);
+          new Notice('Error occured, see console logs for details.');
           return;
         }
 
@@ -109,10 +110,10 @@ export default class AzureDevopsPlugin extends Plugin {
 
             // Create or replace Kanban board of current sprint
             this.createKanbanBoard(normalizedFolderPath, tasksInCurrentSprint, currentSprint.name);
+
+            new Notice('Updated all Kanban boards successfully!');
           });
       });
-
-    new Notice('Updated all Kanban boards successfully!');
   }
 
   private createFolders(path: string) {
@@ -141,18 +142,18 @@ export default class AzureDevopsPlugin extends Plugin {
       this.app.vault.delete(file, true);
     }
     
-    var tasksInPendingState = this.formatTaskLinks(this.filterTasksInColumnAsString(tasks, COLUMN_PENDING)).join('\n');
-    var tasksInProgressState = this.formatTaskLinks(this.filterTasksInColumnAsString(tasks, COLUMN_IN_PROGRESS)).join('\n');
-    var tasksInMergeState = this.formatTaskLinks(this.filterTasksInColumnAsString(tasks, COLUMN_IN_MERGE)).join('\n');
-    var tasksInVerificationState = this.formatTaskLinks(this.filterTasksInColumnAsString(tasks, COLUMN_IN_VERIFICATION)).join('\n');
-    var tasksInClosedState = this.formatTaskLinks(this.filterTasksInColumnAsString(tasks, COLUMN_CLOSED)).join('\n');
+    var tasksInPendingState = this.formatTaskLinks(this.filterTasksInColumn(tasks, COLUMN_PENDING)).join('\n');
+    var tasksInProgressState = this.formatTaskLinks(this.filterTasksInColumn(tasks, COLUMN_IN_PROGRESS)).join('\n');
+    var tasksInMergeState = this.formatTaskLinks(this.filterTasksInColumn(tasks, COLUMN_IN_MERGE)).join('\n');
+    var tasksInVerificationState = this.formatTaskLinks(this.filterTasksInColumn(tasks, COLUMN_IN_VERIFICATION)).join('\n');
+    var tasksInClosedState = this.formatTaskLinks(this.filterTasksInColumn(tasks, COLUMN_CLOSED)).join('\n');
 
 
     this.app.vault.create(filepath, BOARD_TEMPLATE_MD.format(tasksInPendingState,tasksInProgressState,tasksInMergeState,tasksInVerificationState,tasksInClosedState))
         .catch(err => console.log(err));
   }
 
-  private filterTasksInColumnAsString(tasks: Array<any>, column: string): Array<any> {
+  private filterTasksInColumn(tasks: Array<any>, column: string): Array<any> {
     return tasks.filter(task => task.fields["System.State"] === column);
   }
 
