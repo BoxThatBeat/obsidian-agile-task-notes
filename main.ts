@@ -75,8 +75,10 @@ export default class AzureDevopsPlugin extends Plugin {
 
   private async updateCurrentSprintBoard() {
 
+    var encoded64PAT = Buffer.from(`:${this.settings.accessToken}`, 'base64');
+
     const headers = {
-      "Authorization": `Basic ${this.settings.accessToken}`,
+      "Authorization": `Basic ${encoded64PAT}`,
       "Content-Type": "application/json"
     }
 
