@@ -1,9 +1,9 @@
 {
 	"id": "azure-devops-boards-plugin",
-	"name": "AzureDevops Boards Plugin",
+	"name": "AzureDevops Boards",
 	"version": "1.0.1",
 	"minAppVersion": "0.12.0",
-	"description": "Update private Kanban board notes from remote AzureDevops repo. Best used with other plugin Kanban by mgmeyers",
+	"description": "Update private Kanban board notes from remote AzureDevops repo. Best used with plugin \"Kanban\" by mgmeyers and \"Checklist\" by delashum.",
 	"author": "Aaron Buitenwerf",
 	"authorUrl": "https://obsidian.md",
 	"isDesktopOnly": false
