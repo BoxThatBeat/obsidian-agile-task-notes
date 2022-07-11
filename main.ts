@@ -128,7 +128,7 @@ export default class AzureDevopsPlugin extends Plugin {
     var filepath = path + `/${filename}.md`
 
     if (this.app.vault.getAbstractFileByPath(filepath) == null) {
-      this.app.vault.create(filepath, TASK_TEMPLATE_MD.format(task.fields["System.Title"], `#${task.fields["System.WorkItemType"]}`))
+      this.app.vault.create(filepath, TASK_TEMPLATE_MD.format(task.fields["System.Title"], `#${task.fields["System.WorkItemType"].replace(/ /g,'')}`))
         .catch(err => console.log(err));
     }
   }
