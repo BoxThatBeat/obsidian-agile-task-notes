@@ -69,7 +69,7 @@ export default class AzureDevopsPlugin extends Plugin {
 
   private async updateCurrentSprintBoard() {
 
-    var encoded64PAT = Buffer.from(`:${this.settings.accessToken}`, 'base64');
+    var encoded64PAT = Buffer.from(`:${this.settings.accessToken}`).toString("base64");
 
     const headers = {
       "Authorization": `Basic ${encoded64PAT}`,
@@ -86,7 +86,7 @@ export default class AzureDevopsPlugin extends Plugin {
 
         if (responses[0].status != 200 || responses[1].status != 200) {
           console.log("Azure Devops API Error.", responses);
-          new Notice('Error occured, see console logs for details.');
+          new Notice('Error occured, see console logs for details. (ctrl+shift+i) to open');
           return;
         }
 
