@@ -3,7 +3,7 @@ import { App, normalizePath, Notice, Plugin, PluginSettingTab, Setting, requestU
 const TASK_TEMPLATE_MD: string = "# {0}\n{1}\n\nLink: {2}\n\n#todo:\n- [ ] \n\n## Notes:\n"; // Title, Tags
 const BOARD_TEMPLATE_MD: string = "---\n\nkanban-plugin: basic\n\n---\n\n## Pending\n{0}\n## In Progress\n{1}\n## In Merge\n{2}\n## In Verification\n{3}\n## Closed\n**Complete**\n{4}\n%% kanban:settings\n\`\`\`\n{\"kanban-plugin\":\"basic\"}\n\`\`\`%%\"";
 
-const TASKS_QUERY: string = "{\"query\": \"Select [System.Id], [System.Title], [System.State] From WorkItems Where [Assigned to] = \'{0}\'\"}" // username
+const TASKS_QUERY: string = "{\"query\": \"Select [System.Id], [System.Title], [System.State] From WorkItems Where [Assigned to] = \\\"{0}\\\"\"}" // username
 
 // TODO: replace with columns pulled from Azure Devops
 const COLUMN_PENDING = "Pending";
@@ -29,7 +29,7 @@ const DEFAULT_SETTINGS: AzureDevopsPluginSettings = {
   team: '',
   username: '',
   accessToken: '',
-  targetFolder: 'Work/AgileSprints'
+  targetFolder: ''
 }
 
 export default class AzureDevopsPlugin extends Plugin {
@@ -78,9 +78,12 @@ export default class AzureDevopsPlugin extends Plugin {
 
     const BaseURL = `https://${this.settings.instance}/${this.settings.collection}/${this.settings.project}`;
 
+    var username = this.settings.username.replace("\'", "\\'");
+    console.log(username);
+    console.log(TASKS_QUERY.format(username));
     Promise.all([
       requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/${this.settings.team}/_apis/work/teamsettings/iterations?$timeframe=current&api-version=6.0` }),
-      requestUrl({method: 'POST', body: TASKS_QUERY.format(this.settings.username), headers: headers, url: `${BaseURL}/${this.settings.team}/_apis/wit/wiql?api-version=6.0` })
+      requestUrl({method: 'POST', body: TASKS_QUERY.format(username), headers: headers, url: `${BaseURL}/${this.settings.team}/_apis/wit/wiql?api-version=6.0` })
     ])
       .then((responses) => {
 
