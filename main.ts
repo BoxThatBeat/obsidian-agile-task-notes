@@ -79,8 +79,7 @@ export default class AzureDevopsPlugin extends Plugin {
     const BaseURL = `https://${this.settings.instance}/${this.settings.collection}/${this.settings.project}`;
 
     var username = this.settings.username.replace("\'", "\\'");
-    console.log(username);
-    console.log(TASKS_QUERY.format(username));
+
     Promise.all([
       requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/${this.settings.team}/_apis/work/teamsettings/iterations?$timeframe=current&api-version=6.0` }),
       requestUrl({method: 'POST', body: TASKS_QUERY.format(username), headers: headers, url: `${BaseURL}/${this.settings.team}/_apis/wit/wiql?api-version=6.0` })
