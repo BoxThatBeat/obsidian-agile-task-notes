@@ -121,16 +121,20 @@ export default class AzureDevopsPlugin extends Plugin {
     }
   }
 
-  private idUniqueInVault(id: string) : boolean {
+  private getFilenameByTaskId(id: string) : string {
     const files = this.app.vault.getMarkdownFiles()
 
     for (let i = 0; i < files.length; i++) {
       if (files[i].path.contains(id)) {
-        return false;
+
+        var partsOfPath = files[i].path.split("/");
+        var filename = partsOfPath[partsOfPath.length - 1];
+        
+        return filename.substring(0, filename.length-3);; // remove ".md"
       }
     }
 
-    return true;
+    return "";
   }
 
   private createTaskNote(path: string, task: any) {
@@ -138,7 +142,7 @@ export default class AzureDevopsPlugin extends Plugin {
     var filepath = path + `/${filename}.md`;
     var originalLink = `https://${this.settings.instance}/${this.settings.collection}/${this.settings.project}/_workitems/edit/${task.id}`;
 
-    if (this.idUniqueInVault(task.id)) {
+    if (this.getFilenameByTaskId(task.id).length === 0) {
       this.app.vault.create(filepath, TASK_TEMPLATE_MD.format(task.fields["System.Title"], `#${task.fields["System.WorkItemType"].replace(/ /g,'')}`, originalLink))
         .catch(err => console.log(err));
     }
@@ -169,7 +173,7 @@ export default class AzureDevopsPlugin extends Plugin {
   }
 
   private formatTaskLinks(tasks: Array<any>): Array<string> {
-    return tasks.map(task => `- [ ] [[${this.formatTaskFilename(task.fields["System.WorkItemType"], task.id)}]] \n ${task.fields["System.Title"]}`);
+    return tasks.map(task => `- [ ] [[${this.getFilenameByTaskId(task.id)}]] \n ${task.fields["System.Title"]}`);
   }
 
   private formatTaskFilename(type: string, id: number) {
