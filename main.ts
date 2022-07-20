@@ -121,12 +121,24 @@ export default class AzureDevopsPlugin extends Plugin {
     }
   }
 
+  private idUniqueInVault(id: string) : boolean {
+    const files = this.app.vault.getMarkdownFiles()
+
+    for (let i = 0; i < files.length; i++) {
+      if (files[i].path.contains(id)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   private createTaskNote(path: string, task: any) {
     var filename = this.formatTaskFilename(task.fields["System.WorkItemType"], task.id);
     var filepath = path + `/${filename}.md`;
     var originalLink = `https://${this.settings.instance}/${this.settings.collection}/${this.settings.project}/_workitems/edit/${task.id}`;
 
-    if (this.app.vault.getAbstractFileByPath(filepath) == null) { //TODO: instead check  if the task number is contained in any file name in the system (so that users can change their task titles)
+    if (this.idUniqueInVault(task.id)) {
       this.app.vault.create(filepath, TASK_TEMPLATE_MD.format(task.fields["System.Title"], `#${task.fields["System.WorkItemType"].replace(/ /g,'')}`, originalLink))
         .catch(err => console.log(err));
     }
