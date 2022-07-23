@@ -1,4 +1,4 @@
-import { App, normalizePath, Notice, Plugin, PluginSettingTab, Setting, requestUrl } from 'obsidian';
+import { App, normalizePath, Notice, Plugin, PluginSettingTab, Setting, requestUrl, TFile } from 'obsidian';
 
 const TASK_TEMPLATE_MD: string = "# {0}\n{1}\n\nLink: {2}\n\n#todo:\n- [ ] Create todo list\n- [ ] \n## Notes:\n"; // Title, Tags
 const BOARD_TEMPLATE_MD: string = "---\n\nkanban-plugin: basic\n\n---\n\n## Pending\n{0}\n## In Progress\n{1}\n## In Merge\n{2}\n## In Verification\n{3}\n## Closed\n**Complete**\n{4}\n%% kanban:settings\n\`\`\`\n{\"kanban-plugin\":\"basic\"}\n\`\`\`%%\"";
@@ -80,38 +80,47 @@ export default class AzureDevopsPlugin extends Plugin {
 
     var username = this.settings.username.replace("\'", "\\'");
 
-    Promise.all([
-      requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/${this.settings.team}/_apis/work/teamsettings/iterations?$timeframe=current&api-version=6.0` }),
-      requestUrl({method: 'POST', body: TASKS_QUERY.format(username), headers: headers, url: `${BaseURL}/${this.settings.team}/_apis/wit/wiql?api-version=6.0` })
-    ])
-      .then((responses) => {
+    var iterationResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/${this.settings.team}/_apis/work/teamsettings/iterations?$timeframe=current&api-version=6.0` });
+    var tasksReponse = await requestUrl({method: 'POST', body: TASKS_QUERY.format(username), headers: headers, url: `${BaseURL}/${this.settings.team}/_apis/wit/wiql?api-version=6.0` });
 
-        if (responses[0].status != 200 || responses[1].status != 200) {
-          console.log("Azure Devops API Error.", responses);
-          new Notice('Error occured, see console logs for details. (ctrl+shift+i) to open');
-          return;
-        }
+    if (iterationResponse.status != 200) {
+      this.logError(iterationResponse.json);
+    }
+    if (tasksReponse.status != 200) {
+      this.logError(iterationResponse.json);
+    }
 
-        var currentSprint = responses[0].json.value[0];
-        var userAssignedTaskIds = responses[1].json.workItems;
-        var normalizedFolderPath =  normalizePath(this.settings.targetFolder + '/' + currentSprint.path);
+    var currentSprint = iterationResponse.json.value[0];
+    var userAssignedTaskIds = tasksReponse.json.workItems;
+    var normalizedFolderPath =  normalizePath(this.settings.targetFolder + '/' + currentSprint.path);
 
-        Promise.all(userAssignedTaskIds.map((task: any) => requestUrl({ method: 'GET', headers: headers, url: task.url}).then((r) => r.json)))
-          .then((userAssignedTasks) => {
+    var userAssignedTasks = await Promise.all(userAssignedTaskIds.map((task: any) => requestUrl({ method: 'GET', headers: headers, url: task.url}).then((r) => r.json)));
 
-            // Ensure folder structure created
-            this.createFolders(normalizedFolderPath);
+    // Ensure folder structure created
+    this.createFolders(normalizedFolderPath);
 
-            // Create markdown files based on remote task in current sprint
-            var tasksInCurrentSprint = userAssignedTasks.filter(task => task.fields["System.IterationPath"] === currentSprint.path);
-            tasksInCurrentSprint.forEach(task => this.createTaskNote(normalizedFolderPath, task));
+    // Get user's assigned tasks in current sprint
+    var tasksInCurrentSprint = userAssignedTasks.filter(task => task.fields["System.IterationPath"] === currentSprint.path);
 
-            // Create or replace Kanban board of current sprint
-            this.createKanbanBoard(normalizedFolderPath, tasksInCurrentSprint, currentSprint.name);
+    // Create markdown files based on remote task in current sprint
+    var promisesToCreateNotes: Promise<TFile>[] = [];
+    tasksInCurrentSprint.forEach(task => { 
+      if (this.getFilenameByTaskId(task.id).length === 0) {
+        promisesToCreateNotes.push(this.createTaskNote(normalizedFolderPath, task));
+      }
+    });
 
-            new Notice('Updated all Kanban boards successfully!');
-          });
-      });
+    await Promise.all(promisesToCreateNotes); //Await since KanbamBoard depends on files being created (filenames)
+
+    // Create or replace Kanban board of current sprint
+    this.createKanbanBoard(normalizedFolderPath, tasksInCurrentSprint, currentSprint.name);
+
+    new Notice('Updated all Kanban boards successfully!');
+  }
+
+  private logError(error: string): void {
+    console.log(error);
+    new Notice('Error occured, see console logs for details. (ctrl+shift+i) to open');
   }
 
   private createFolders(path: string) {
@@ -137,15 +146,12 @@ export default class AzureDevopsPlugin extends Plugin {
     return "";
   }
 
-  private createTaskNote(path: string, task: any) {
+  private async createTaskNote(path: string, task: any): Promise<TFile> {
     var filename = this.formatTaskFilename(task.fields["System.WorkItemType"], task.id);
     var filepath = path + `/${filename}.md`;
     var originalLink = `https://${this.settings.instance}/${this.settings.collection}/${this.settings.project}/_workitems/edit/${task.id}`;
 
-    if (this.getFilenameByTaskId(task.id).length === 0) {
-      this.app.vault.create(filepath, TASK_TEMPLATE_MD.format(task.fields["System.Title"], `#${task.fields["System.WorkItemType"].replace(/ /g,'')}`, originalLink))
-        .catch(err => console.log(err));
-    }
+    return this.app.vault.create(filepath, TASK_TEMPLATE_MD.format(task.fields["System.Title"], `#${task.fields["System.WorkItemType"].replace(/ /g,'')}`, originalLink));
   }
 
   private createKanbanBoard(path: string, tasks: Array<any>, sprintName: string) {
