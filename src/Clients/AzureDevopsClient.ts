@@ -103,15 +103,23 @@ export class AzureDevopsClient implements ITfsClient{
       app.vault.delete(file, true);
     }
     
-    var tasksInPendingState = VaultHelper.formatTaskLinks(VaultHelper.filterTasksInColumn(tasks, COLUMN_PENDING)).join('\n');
-    var tasksInProgressState = VaultHelper.formatTaskLinks(VaultHelper.filterTasksInColumn(tasks, COLUMN_IN_PROGRESS)).join('\n');
-    var tasksInMergeState = VaultHelper.formatTaskLinks(VaultHelper.filterTasksInColumn(tasks, COLUMN_IN_MERGE)).join('\n');
-    var tasksInVerificationState = VaultHelper.formatTaskLinks(VaultHelper.filterTasksInColumn(tasks, COLUMN_IN_VERIFICATION)).join('\n');
-    var tasksInClosedState = VaultHelper.formatTaskLinks(VaultHelper.filterTasksInColumn(tasks, COLUMN_CLOSED)).join('\n');
+    var tasksInPendingState = this.formatTaskLinks(this.filterTasksInColumn(tasks, COLUMN_PENDING)).join('\n');
+    var tasksInProgressState = this.formatTaskLinks(this.filterTasksInColumn(tasks, COLUMN_IN_PROGRESS)).join('\n');
+    var tasksInMergeState = this.formatTaskLinks(this.filterTasksInColumn(tasks, COLUMN_IN_MERGE)).join('\n');
+    var tasksInVerificationState = this.formatTaskLinks(this.filterTasksInColumn(tasks, COLUMN_IN_VERIFICATION)).join('\n');
+    var tasksInClosedState = this.formatTaskLinks(this.filterTasksInColumn(tasks, COLUMN_CLOSED)).join('\n');
 
 
     app.vault.create(filepath, BOARD_TEMPLATE_MD.format(tasksInPendingState,tasksInProgressState,tasksInMergeState,tasksInVerificationState,tasksInClosedState))
         .catch(err => console.log(err));
+  }
+
+  public filterTasksInColumn(tasks: Array<any>, column: string): Array<any> {
+    return tasks.filter(task => task.fields["System.State"] === column);
+  }
+
+  public formatTaskLinks(tasks: Array<any>): Array<string> {
+    return tasks.map(task => `- [ ] [[${VaultHelper.getFilenameByTaskId(task.id)}]] \n ${task.fields["System.Title"]}`);
   }
 
   public setupSettings(container: HTMLElement, plugin: AgileTaskNotesPlugin): any {

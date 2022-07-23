@@ -1,10 +1,10 @@
 {
-	"id": "azure-devops-boards-plugin",
-	"name": "AzureDevops Boards",
+	"id": "obsidian-agile-task-notes",
+	"name": "Agile Task Notes",
 	"version": "1.0.1",
 	"minAppVersion": "0.12.0",
-	"description": "Update private Kanban board notes from remote AzureDevops repo. Best used with plugin \"Kanban\" by mgmeyers and \"Checklist\" by delashum.",
+	"description": "Automated pulling of tasks from TFS (Jira or AzureDevops) in the form of notes and todo lists in local Obsidian vault. Also creates a local kanban board for easy management of tasks. Best used with plugin \"Kanban\" by mgmeyers and \"Checklist\" by delashum.",
 	"author": "Aaron Buitenwerf",
-	"authorUrl": "https://obsidian.md",
+	"authorUrl": "https://github.com/BoxThatBeat",
 	"isDesktopOnly": false
 }

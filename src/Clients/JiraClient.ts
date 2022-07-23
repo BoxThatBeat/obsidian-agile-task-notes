@@ -1,5 +1,5 @@
-import AzureDevopsPlugin from 'main';
-import { normalizePath, requestUrl, TFile } from 'obsidian';
+import AgileTaskNotesPlugin from 'main';
+import { normalizePath, requestUrl, Setting, TFile } from 'obsidian';
 import { VaultHelper } from 'src/VaultHelper'
 import { ITfsClient } from './ITfsClient';
 
@@ -21,9 +21,29 @@ export class JiraClient implements ITfsClient{
 
   }
 
-  public setupSettings(container: HTMLElement, plugin: AzureDevopsPlugin): any {
+  public setupSettings(container: HTMLElement, plugin: AgileTaskNotesPlugin): any {
     container.createEl('h2', {text: 'Jira Remote Repo Settings'});
 
-    
+    new Setting(container)
+			.setName('Email')
+			.setDesc('The email of your Atlassian account for Jira')
+			.addText(text => text
+				.setPlaceholder('Enter Atlassian email')
+				.setValue(plugin.settings.jiraSettings.email)
+				.onChange(async (value) => {
+					plugin.settings.jiraSettings.email = value;
+					await plugin.saveSettings();
+				}));
+
+    new Setting(container)
+    .setName('API Token')
+    .setDesc('The API token generated with your account')
+    .addText(text => text
+      .setPlaceholder('Enter API token')
+      .setValue(plugin.settings.jiraSettings.apiToken)
+      .onChange(async (value) => {
+        plugin.settings.jiraSettings.apiToken = value;
+        await plugin.saveSettings();
+      }));
   }
 }

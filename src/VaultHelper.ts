@@ -1,12 +1,22 @@
-import { App, Notice, TFile } from 'obsidian';
+import { Notice } from 'obsidian';
 
 export class VaultHelper { 
 
+  /**
+   * Logs an error and notifies user that an error occured
+   * @param error - The error message to log
+   * @public
+   */
   public static logError(error: string): void {
     console.log(error);
     new Notice('Error occured, see console logs for details. (ctrl+shift+i) to open');
   }
 
+  /**
+   * Creates all folders in a given path if they are non-existant
+   * @param path - The path of folders to creates
+   * @public
+   */
   public static createFolders(path: string) {
     if (app.vault.getAbstractFileByPath(path) == null) {
       app.vault.createFolder(path)
@@ -14,6 +24,11 @@ export class VaultHelper {
     }
   }
 
+  /**
+   * Will return a filename if the provided id is in the title of a markdown file in the vault
+   * @param id - The string to search for in all filenames in the vault
+   * @public
+   */
   public static getFilenameByTaskId(id: string) : string {
     const files = app.vault.getMarkdownFiles()
 
@@ -30,14 +45,12 @@ export class VaultHelper {
     return "";
   }
 
-  public static filterTasksInColumn(tasks: Array<any>, column: string): Array<any> {
-    return tasks.filter(task => task.fields["System.State"] === column);
-  }
-
-  public static formatTaskLinks(tasks: Array<any>): Array<string> {
-    return tasks.map(task => `- [ ] [[${this.getFilenameByTaskId(task.id)}]] \n ${task.fields["System.Title"]}`);
-  }
-
+  /**
+   * Formats a task filename in this format: "{type} - {id}"
+   * @param type - The type of task
+   * @param id - The ID of the task
+   * @public
+   */
   public static formatTaskFilename(type: string, id: number) {
     return `${type} - ${id}`
   }
