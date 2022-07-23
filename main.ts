@@ -1,32 +1,24 @@
 import { App, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
-import { AzureDevopsClient } from 'src/Clients/AzureDevopsClient'
+import { AzureDevopsClient, AzureDevopsSettings, AZURE_DEVOPS_DEFAULT_SETTINGS } from 'src/Clients/AzureDevopsClient'
 import { ITfsClient } from './src/Clients/ITfsClient';
-import { JiraClient } from './src/Clients/JiraClient';
+import { JiraClient, JiraSettings, JIRA_DEFAULT_SETTINGS } from './src/Clients/JiraClient';
 
-interface AzureDevopsPluginSettings {
+interface AgileTaskNotesSettings {
   selectedTfsClient: string,
-	instance: string;
-  collection: string;
-  project: string;
-  team: string,
-  username: string,
-  accessToken: string,
-  targetFolder: string
+  targetFolder: string,
+	azureDevopsSettings: AzureDevopsSettings,
+  jiraSettings: JiraSettings
 }
 
-const DEFAULT_SETTINGS: AzureDevopsPluginSettings = {
+const DEFAULT_SETTINGS: AgileTaskNotesSettings = {
   selectedTfsClient: 'AzureDevops',
-	instance: '',
-  collection: 'DefaultCollection',
-  project: '',
-  team: '',
-  username: '',
-  accessToken: '',
-  targetFolder: ''
+  targetFolder: '',
+  azureDevopsSettings: AZURE_DEVOPS_DEFAULT_SETTINGS,
+  jiraSettings: JIRA_DEFAULT_SETTINGS
 }
 
-export default class AzureDevopsPlugin extends Plugin {
-	settings: AzureDevopsPluginSettings;
+export default class AgileTaskNotesPlugin extends Plugin {
+	settings: AgileTaskNotesSettings;
 
   tfsClientImplementations: { [key: string]: ITfsClient } = {};
 
@@ -56,7 +48,7 @@ export default class AzureDevopsPlugin extends Plugin {
 			}
 		});
 
-		this.addSettingTab(new AzureDevopsPluginSettingTab(this.app, this));
+		this.addSettingTab(new AgileTaskNotesPluginSettingTab(this.app, this));
 	}
 
 	onunload() {
@@ -74,10 +66,10 @@ export default class AzureDevopsPlugin extends Plugin {
   
 }
 
-class AzureDevopsPluginSettingTab extends PluginSettingTab {
-	plugin: AzureDevopsPlugin;
+class AgileTaskNotesPluginSettingTab extends PluginSettingTab {
+	plugin: AgileTaskNotesPlugin;
 
-	constructor(app: App, plugin: AzureDevopsPlugin) {
+	constructor(app: App, plugin: AgileTaskNotesPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}

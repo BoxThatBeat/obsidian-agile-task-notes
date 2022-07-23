@@ -1,7 +1,25 @@
-import AzureDevopsPlugin from 'main';
-import { normalizePath, PluginSettingTab, requestUrl, Setting, TFile } from 'obsidian';
+import AgileTaskNotesPlugin from 'main';
+import { normalizePath, requestUrl, Setting, TFile } from 'obsidian';
 import { VaultHelper } from 'src/VaultHelper'
 import { ITfsClient } from './ITfsClient';
+
+export interface AzureDevopsSettings {
+  instance: string,
+  collection: string,
+  project: string,
+  team: string,
+  username: string,
+  accessToken: string,
+}
+
+export const AZURE_DEVOPS_DEFAULT_SETTINGS: AzureDevopsSettings = {
+	instance: '',
+  collection: 'DefaultCollection',
+  project: '',
+  team: '',
+  username: '',
+  accessToken: ''
+}
 
 // TODO: replace with columns pulled from Azure Devops
 const COLUMN_PENDING = "Pending";
@@ -21,19 +39,19 @@ export class AzureDevopsClient implements ITfsClient{
 
   public async updateCurrentSprint(settings: any): Promise<void> {
 
-    var encoded64PAT = Buffer.from(`:${settings.accessToken}`).toString("base64");
+    var encoded64PAT = Buffer.from(`:${settings.azureDevopsSettings.accessToken}`).toString("base64");
 
     const headers = {
       "Authorization": `Basic ${encoded64PAT}`,
       "Content-Type": "application/json"
     }
 
-    const BaseURL = `https://${settings.instance}/${settings.collection}/${settings.project}`;
+    const BaseURL = `https://${settings.azureDevopsSettings.instance}/${settings.azureDevopsSettings.collection}/${settings.azureDevopsSettings.project}`;
 
-    var username = settings.username.replace("\'", "\\'");
+    var username = settings.azureDevopsSettings.username.replace("\'", "\\'");
 
-    var iterationResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/${settings.team}/_apis/work/teamsettings/iterations?$timeframe=current&api-version=6.0` });
-    var tasksReponse = await requestUrl({method: 'POST', body: TASKS_QUERY.format(username), headers: headers, url: `${BaseURL}/${settings.team}/_apis/wit/wiql?api-version=6.0` });
+    var iterationResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/${settings.azureDevopsSettings.team}/_apis/work/teamsettings/iterations?$timeframe=current&api-version=6.0` });
+    var tasksReponse = await requestUrl({method: 'POST', body: TASKS_QUERY.format(username), headers: headers, url: `${BaseURL}/${settings.azureDevopsSettings.team}/_apis/wit/wiql?api-version=6.0` });
 
     if (iterationResponse.status != 200) {
       VaultHelper.logError(iterationResponse.json);
@@ -71,7 +89,7 @@ export class AzureDevopsClient implements ITfsClient{
   public async createTaskNote(settings: any, path: string, task: any, template:string): Promise<TFile> {
     var filename = VaultHelper.formatTaskFilename(task.fields["System.WorkItemType"], task.id);
     var filepath = path + `/${filename}.md`;
-    var originalLink = `https://${settings.instance}/${settings.collection}/${settings.project}/_workitems/edit/${task.id}`;
+    var originalLink = `https://${settings.azureDevopsSettings.instance}/${settings.azureDevopsSettings.collection}/${settings.azureDevopsSettings.project}/_workitems/edit/${task.id}`;
 
     return app.vault.create(filepath, template.format(task.fields["System.Title"], `#${task.fields["System.WorkItemType"].replace(/ /g,'')}`, originalLink));
   }
@@ -96,7 +114,7 @@ export class AzureDevopsClient implements ITfsClient{
         .catch(err => console.log(err));
   }
 
-  public setupSettings(container: HTMLElement, plugin: AzureDevopsPlugin): any {
+  public setupSettings(container: HTMLElement, plugin: AgileTaskNotesPlugin): any {
     container.createEl('h2', {text: 'AzureDevops Remote Repo Settings'});
 
 		new Setting(container)
@@ -104,9 +122,9 @@ export class AzureDevopsClient implements ITfsClient{
 			.setDesc('TFS server name (BaseURL)')
 			.addText(text => text
 				.setPlaceholder('Enter instance base url')
-				.setValue(plugin.settings.instance)
+				.setValue(plugin.settings.azureDevopsSettings.instance)
 				.onChange(async (value) => {
-					plugin.settings.instance = value;
+					plugin.settings.azureDevopsSettings.instance = value;
 					await plugin.saveSettings();
 				}));
 
@@ -115,9 +133,9 @@ export class AzureDevopsClient implements ITfsClient{
     .setDesc('The name of the Azure DevOps collection')
     .addText(text => text
       .setPlaceholder('Enter Collection Name')
-      .setValue(plugin.settings.collection)
+      .setValue(plugin.settings.azureDevopsSettings.collection)
       .onChange(async (value) => {
-        plugin.settings.collection = value;
+        plugin.settings.azureDevopsSettings.collection = value;
         await plugin.saveSettings();
       }));
 
@@ -126,9 +144,9 @@ export class AzureDevopsClient implements ITfsClient{
     .setDesc('AzureDevops Project ID or project name')
     .addText(text => text
       .setPlaceholder('Enter project name')
-      .setValue(plugin.settings.project)
+      .setValue(plugin.settings.azureDevopsSettings.project)
       .onChange(async (value) => {
-        plugin.settings.project = value;
+        plugin.settings.azureDevopsSettings.project = value;
         await plugin.saveSettings();
       }));
 
@@ -137,9 +155,9 @@ export class AzureDevopsClient implements ITfsClient{
     .setDesc('AzureDevops Team ID or team name')
     .addText(text => text
       .setPlaceholder('Enter team name')
-      .setValue(plugin.settings.team)
+      .setValue(plugin.settings.azureDevopsSettings.team)
       .onChange(async (value) => {
-        plugin.settings.team = value;
+        plugin.settings.azureDevopsSettings.team = value;
         await plugin.saveSettings();
       }));
 
@@ -148,9 +166,9 @@ export class AzureDevopsClient implements ITfsClient{
     .setDesc('Your AzureDevops username (display name)')
     .addText(text => text
       .setPlaceholder('Enter your name')
-      .setValue(plugin.settings.username)
+      .setValue(plugin.settings.azureDevopsSettings.username)
       .onChange(async (value) => {
-        plugin.settings.username = value;
+        plugin.settings.azureDevopsSettings.username = value;
         await plugin.saveSettings();
       }));
 
@@ -159,9 +177,9 @@ export class AzureDevopsClient implements ITfsClient{
     .setDesc('Your AzureDevops PAT with full access')
     .addText(text => text
       .setPlaceholder('Enter your PAT')
-      .setValue(plugin.settings.accessToken)
+      .setValue(plugin.settings.azureDevopsSettings.accessToken)
       .onChange(async (value) => {
-        plugin.settings.accessToken = value;
+        plugin.settings.azureDevopsSettings.accessToken = value;
         await plugin.saveSettings();
       }));
   }

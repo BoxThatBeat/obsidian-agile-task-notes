@@ -2,12 +2,6 @@ import { App, Notice, TFile } from 'obsidian';
 
 export class VaultHelper { 
 
-  private app: App;
-
-  public constructor (app:App) {
-    app = app;
-  }
-
   public static logError(error: string): void {
     console.log(error);
     new Notice('Error occured, see console logs for details. (ctrl+shift+i) to open');
