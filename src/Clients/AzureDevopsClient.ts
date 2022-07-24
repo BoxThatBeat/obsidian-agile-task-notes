@@ -28,7 +28,7 @@ const COLUMN_IN_MERGE = "In Merge";
 const COLUMN_IN_VERIFICATION = "In Verification";
 const COLUMN_CLOSED= "Closed";
 
-const TASK_TEMPLATE_MD: string = "# {0}\n{1}\n\nLink: {2}\n\n#todo:\n- [ ] Create todo list\n- [ ] \n## Notes:\n"; // Title, Tags
+const TASK_TEMPLATE_MD: string = "# {0}\n#{1}\n\nLink: {2}\n\n#todo:\n- [ ] Create todo list\n- [ ] \n\n## Notes:\n"; // Title, Tags
 const BOARD_TEMPLATE_MD: string = "---\n\nkanban-plugin: basic\n\n---\n\n## Pending\n{0}\n## In Progress\n{1}\n## In Merge\n{2}\n## In Verification\n{3}\n## Closed\n**Complete**\n{4}\n%% kanban:settings\n\`\`\`\n{\"kanban-plugin\":\"basic\"}\n\`\`\`%%\"";
 
 const TASKS_QUERY: string = "{\"query\": \"Select [System.Id], [System.Title], [System.State] From WorkItems Where [Assigned to] = \\\"{0}\\\"\"}" // username
@@ -50,51 +50,50 @@ export class AzureDevopsClient implements ITfsClient{
 
     var username = settings.azureDevopsSettings.username.replace("\'", "\\'");
 
-    var iterationResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/${settings.azureDevopsSettings.team}/_apis/work/teamsettings/iterations?$timeframe=current&api-version=6.0` });
-    var tasksReponse = await requestUrl({method: 'POST', body: TASKS_QUERY.format(username), headers: headers, url: `${BaseURL}/${settings.azureDevopsSettings.team}/_apis/wit/wiql?api-version=6.0` });
+    try {
+      var iterationResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/${settings.azureDevopsSettings.team}/_apis/work/teamsettings/iterations?$timeframe=current&api-version=6.0` });
+      var tasksReponse = await requestUrl({method: 'POST', body: TASKS_QUERY.format(username), headers: headers, url: `${BaseURL}/${settings.azureDevopsSettings.team}/_apis/wit/wiql?api-version=6.0` });
 
-    if (iterationResponse.status != 200) {
-      VaultHelper.logError(iterationResponse.json);
+      var currentSprint = iterationResponse.json.value[0];
+      var userAssignedTaskIds = tasksReponse.json.workItems;
+      var normalizedFolderPath =  normalizePath(settings.targetFolder + '/' + currentSprint.path);
+
+      var userAssignedTasks = await Promise.all(userAssignedTaskIds.map((task: any) => requestUrl({ method: 'GET', headers: headers, url: task.url}).then((r) => r.json)));
+
+      // Ensure folder structure created
+      VaultHelper.createFolders(normalizedFolderPath);
+
+      // Get user's assigned tasks in current sprint
+      var tasksInCurrentSprint = userAssignedTasks.filter(task => task.fields["System.IterationPath"] === currentSprint.path);
+
+      // Create markdown files based on remote task in current sprint
+      var promisesToCreateNotes: Promise<TFile>[] = [];
+      tasksInCurrentSprint.forEach(task => { 
+        if (VaultHelper.getFilenameByTaskId(task.id).length === 0) {
+          promisesToCreateNotes.push(this.createTaskNote(settings, normalizedFolderPath, task, TASK_TEMPLATE_MD));
+        }
+      });
+
+      await Promise.all(promisesToCreateNotes); //Await since KanbamBoard depends on files being created (filenames)
+
+      // Create or replace Kanban board of current sprint
+      this.createKanbanBoard(normalizedFolderPath, tasksInCurrentSprint, currentSprint.name);
+    
+    } catch(e) {
+      VaultHelper.logError(e);
     }
-    if (tasksReponse.status != 200) {
-      VaultHelper.logError(iterationResponse.json);
-    }
-
-    var currentSprint = iterationResponse.json.value[0];
-    var userAssignedTaskIds = tasksReponse.json.workItems;
-    var normalizedFolderPath =  normalizePath(settings.targetFolder + '/' + currentSprint.path);
-
-    var userAssignedTasks = await Promise.all(userAssignedTaskIds.map((task: any) => requestUrl({ method: 'GET', headers: headers, url: task.url}).then((r) => r.json)));
-
-    // Ensure folder structure created
-    VaultHelper.createFolders(normalizedFolderPath);
-
-    // Get user's assigned tasks in current sprint
-    var tasksInCurrentSprint = userAssignedTasks.filter(task => task.fields["System.IterationPath"] === currentSprint.path);
-
-    // Create markdown files based on remote task in current sprint
-    var promisesToCreateNotes: Promise<TFile>[] = [];
-    tasksInCurrentSprint.forEach(task => { 
-      if (VaultHelper.getFilenameByTaskId(task.id).length === 0) {
-        promisesToCreateNotes.push(this.createTaskNote(settings, normalizedFolderPath, task, TASK_TEMPLATE_MD));
-      }
-    });
-
-    await Promise.all(promisesToCreateNotes); //Await since KanbamBoard depends on files being created (filenames)
-
-    // Create or replace Kanban board of current sprint
-    this.createKanbanBoard(normalizedFolderPath, tasksInCurrentSprint, currentSprint.name);
   }
 
-  public async createTaskNote(settings: any, path: string, task: any, template:string): Promise<TFile> {
-    var filename = VaultHelper.formatTaskFilename(task.fields["System.WorkItemType"], task.id);
+  private async createTaskNote(settings: any, path: string, task: any, template:string): Promise<TFile> {
+    var taskType = task.fields["System.WorkItemType"];
+    var filename = VaultHelper.formatTaskFilename(taskType, task.id);
     var filepath = path + `/${filename}.md`;
     var originalLink = `https://${settings.azureDevopsSettings.instance}/${settings.azureDevopsSettings.collection}/${settings.azureDevopsSettings.project}/_workitems/edit/${task.id}`;
 
-    return app.vault.create(filepath, template.format(task.fields["System.Title"], `#${task.fields["System.WorkItemType"].replace(/ /g,'')}`, originalLink));
+    return app.vault.create(filepath, template.format(task.fields["System.Title"], taskType.replace(/ /g,''), originalLink));
   }
 
-  public createKanbanBoard(path: string, tasks: Array<any>, sprintName: string) {
+  private createKanbanBoard(path: string, tasks: Array<any>, sprintName: string) {
     var filename = `${sprintName}-Board`;
     var filepath = path + `/${filename}.md`;
     var file = app.vault.getAbstractFileByPath(filepath);
@@ -114,11 +113,11 @@ export class AzureDevopsClient implements ITfsClient{
         .catch(err => console.log(err));
   }
 
-  public filterTasksInColumn(tasks: Array<any>, column: string): Array<any> {
+  private filterTasksInColumn(tasks: Array<any>, column: string): Array<any> {
     return tasks.filter(task => task.fields["System.State"] === column);
   }
 
-  public formatTaskLinks(tasks: Array<any>): Array<string> {
+  private formatTaskLinks(tasks: Array<any>): Array<string> {
     return tasks.map(task => `- [ ] [[${VaultHelper.getFilenameByTaskId(task.id)}]] \n ${task.fields["System.Title"]}`);
   }
 
