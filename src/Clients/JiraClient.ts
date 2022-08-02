@@ -1,5 +1,6 @@
 import AgileTaskNotesPlugin from 'main';
 import { normalizePath, requestUrl, Setting, TFile } from 'obsidian';
+import { Task } from 'src/Task';
 import { VaultHelper } from 'src/VaultHelper'
 import { ITfsClient } from './ITfsClient';
 
@@ -18,10 +19,6 @@ export const JIRA_DEFAULT_SETTINGS: JiraSettings = {
   apiToken: '',
   boardId: ''
 }
-
-const TASK_TEMPLATE_MD: string = "# {0}\n#{1}\n\nLink: {2}\n\n#todo:\n- [ ] Create todo list\n- [ ] \n\n## Notes:\n"; // Title, Tags
-
-const JQL_QUERY: string = "assignee=\"{0}\"";
 
 export class JiraClient implements ITfsClient{
   
@@ -52,61 +49,24 @@ export class JiraClient implements ITfsClient{
       // Ensure folder structure created
       VaultHelper.createFolders(normalizedFolderPath);
 
-      // Create markdown files based on remote task in current sprint
-      var promisesToCreateNotes: Promise<TFile>[] = [];
-      assignedIssuesInSprint.forEach((task:any) => { 
-        if (VaultHelper.getFilenameByTaskId(task.key).length === 0) {
-          promisesToCreateNotes.push(this.createTaskNote(settings, normalizedFolderPath, task, TASK_TEMPLATE_MD));
-        }
+      var tasks:Array<Task> = [];
+      assignedIssuesInSprint.forEach((task:any) => {
+        tasks.push(new Task(task.key, task.fields["status"]["statusCategory"]["name"], task.fields["summary"], task.fields["issuetype"]["name"], `https://${settings.jiraSettings.baseUrl}/browse/${task.key}`));
       });
 
-      await Promise.all(promisesToCreateNotes); //Await since KanbamBoard depends on files being created (filenames)
-
+      // Create markdown files based on remote task in current sprint
+      await Promise.all(VaultHelper.createTaskNotes(normalizedFolderPath, tasks))
+        .catch(e => VaultHelper.logError(e));
+      
       // Create or replace Kanban board of current sprint
-      //this.createKanbanBoard(normalizedFolderPath, tasksInCurrentSprint, currentSprint.name);
+      var columnIds = settings.columns.split(",");
+      await VaultHelper.createKanbanBoard(normalizedFolderPath, tasks, columnIds, currentSprintId)
+        .catch(e => VaultHelper.logError(e));
 
     } catch(e) {
       VaultHelper.logError(e);
     }
   }
-
-  private async createTaskNote(settings: any, path: string, task: any, template:string): Promise<TFile> {
-    var taskType = task.fields.issuetype.name;
-    var filename = VaultHelper.formatTaskFilename(taskType, task.key);
-    var filepath = path + `/${filename}.md`;
-    var originalLink = `https://${settings.jiraSettings.baseUrl}/browse/${task.key}`;
-
-    return app.vault.create(filepath, template.format(task.fields.summary, taskType.replace(/ /g,''), originalLink));
-  }
-
-  /*
-  private createKanbanBoard(path: string, tasks: Array<any>, sprintName: string) {
-    var filename = `${sprintName}-Board`;
-    var filepath = path + `/${filename}.md`;
-    var file = app.vault.getAbstractFileByPath(filepath);
-
-    if (file != null) {
-      app.vault.delete(file, true);
-    }
-    
-    var tasksInPendingState = this.formatTaskLinks(this.filterTasksInColumn(tasks, COLUMN_PENDING)).join('\n');
-    var tasksInProgressState = this.formatTaskLinks(this.filterTasksInColumn(tasks, COLUMN_IN_PROGRESS)).join('\n');
-    var tasksInMergeState = this.formatTaskLinks(this.filterTasksInColumn(tasks, COLUMN_IN_MERGE)).join('\n');
-    var tasksInVerificationState = this.formatTaskLinks(this.filterTasksInColumn(tasks, COLUMN_IN_VERIFICATION)).join('\n');
-    var tasksInClosedState = this.formatTaskLinks(this.filterTasksInColumn(tasks, COLUMN_CLOSED)).join('\n');
-
-
-    app.vault.create(filepath, BOARD_TEMPLATE_MD.format(tasksInPendingState,tasksInProgressState,tasksInMergeState,tasksInVerificationState,tasksInClosedState))
-        .catch(err => console.log(err));
-  }
-
-  private filterTasksInColumn(tasks: Array<any>, column: string): Array<any> {
-    return tasks.filter(task => task.fields["System.State"] === column);
-  }
-
-  private formatTaskLinks(tasks: Array<any>): Array<string> {
-    return tasks.map(task => `- [ ] [[${VaultHelper.getFilenameByTaskId(task.id)}]] \n ${task.fields["System.Title"]}`);
-  }*/
 
   public setupSettings(container: HTMLElement, plugin: AgileTaskNotesPlugin): any {
     container.createEl('h2', {text: 'Jira Remote Repo Settings'});

@@ -6,6 +6,7 @@ import { JiraClient, JiraSettings, JIRA_DEFAULT_SETTINGS } from './src/Clients/J
 interface AgileTaskNotesSettings {
   selectedTfsClient: string,
   targetFolder: string,
+  columns: string,
 	azureDevopsSettings: AzureDevopsSettings,
   jiraSettings: JiraSettings
 }
@@ -13,6 +14,7 @@ interface AgileTaskNotesSettings {
 const DEFAULT_SETTINGS: AgileTaskNotesSettings = {
   selectedTfsClient: 'AzureDevops',
   targetFolder: '',
+  columns: 'Pending,In Progress,In Merge,In Verification,Closed',
   azureDevopsSettings: AZURE_DEVOPS_DEFAULT_SETTINGS,
   jiraSettings: JIRA_DEFAULT_SETTINGS
 }
@@ -62,8 +64,6 @@ export default class AgileTaskNotesPlugin extends Plugin {
 	async saveSettings() {
 		await this.saveData(this.settings);
 	}
-
-  
 }
 
 class AgileTaskNotesPluginSettingTab extends PluginSettingTab {
@@ -111,6 +111,27 @@ class AgileTaskNotesPluginSettingTab extends PluginSettingTab {
         plugin.settings.targetFolder = value;
         await plugin.saveSettings();
       }));
+
+    new Setting(containerEl)
+    .setName('Column Names')
+    .setDesc('Line-separated list of column key names from TFS board to be used in Kanban board')
+    .addText(text => text
+      .setPlaceholder('Enter comma-seperated list')
+      .setValue(plugin.settings.columns)
+      .onChange(async (value) => {
+        plugin.settings.columns = value;
+        await plugin.saveSettings();
+      }));
+
+    /*const templateDescription = document.createDocumentFragment();
+    templateDescription.append(
+        'Here you can edit the Template for newly created Files.',
+        templateDescription.createEl("br"),
+        templateDescription.createEl("a", {
+            href: "https://github.com/phibr0/obsidian-dictionary#variables",
+            text: 'Click for a List of Variables',
+        }),
+    );*/
 
 	}
 }
