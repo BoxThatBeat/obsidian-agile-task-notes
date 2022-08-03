@@ -3,10 +3,8 @@ import { Task } from './Task';
 
 export class VaultHelper { 
 
-  public static BOARD_TEMPLATE_START: string = "---\n\nkanban-plugin: basic\n\n---\n\n";
-  public static BOARD_TEMPLATE_END: string = "\n%% kanban:settings\n\`\`\`\n{\"kanban-plugin\":\"basic\"}\n\`\`\`%%\"";
-
-  public static TASK_TEMPLATE_MD: string = "# {0}\n#{1}\n\nLink: {2}\n\n#todo:\n- [ ] Create todo list\n- [ ] \n\n## Notes:\n"; // Title, Tags
+  private static BOARD_TEMPLATE_START: string = "---\n\nkanban-plugin: basic\n\n---\n\n";
+  private static BOARD_TEMPLATE_END: string = "\n%% kanban:settings\n\`\`\`\n{\"kanban-plugin\":\"basic\"}\n\`\`\`%%\"";
 
   /**
    * Logs an error and notifies user that an error occured
@@ -67,12 +65,12 @@ export class VaultHelper {
    * @param tasks - An array of Tasks
    * @public
    */
-  public static createTaskNotes(path: string, tasks: Array<Task>): Promise<TFile>[] {
+  public static createTaskNotes(path: string, tasks: Array<Task>, template: string): Promise<TFile>[] {
 
     var promisesToCreateNotes: Promise<TFile>[] = [];
     tasks.forEach(task => { 
       if (this.getFilenameByTaskId(task.id).length === 0) {
-        promisesToCreateNotes.push(this.createTaskNote(path, task, this.TASK_TEMPLATE_MD));
+        promisesToCreateNotes.push(this.createTaskNote(path, task, template));
       }
     });
 
@@ -123,6 +121,11 @@ export class VaultHelper {
     var filename = VaultHelper.formatTaskFilename(task.type, task.id);
     var filepath = path + `/${filename}.md`;
 
-    return app.vault.create(filepath, template.format(task.title, task.type.replace(/ /g,''), task.link));
+    var content = template
+            .replace(/{{TASK_TITLE}}/g, task.title)
+            .replace(/{{TASK_TYPE}}/g, task.type.replace(/ /g,''))
+            .replace(/{{TASK_LINK}}/g, task.link);
+
+    return app.vault.create(filepath, content);
   }
 }

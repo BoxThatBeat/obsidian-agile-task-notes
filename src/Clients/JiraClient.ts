@@ -1,4 +1,4 @@
-import AgileTaskNotesPlugin from 'main';
+import AgileTaskNotesPlugin, { AgileTaskNotesSettings } from 'main';
 import { normalizePath, requestUrl, Setting, TFile } from 'obsidian';
 import { Task } from 'src/Task';
 import { VaultHelper } from 'src/VaultHelper'
@@ -24,7 +24,7 @@ export class JiraClient implements ITfsClient{
   
   clientName: string = 'Jira';
 
-  public async updateCurrentSprint(settings: any): Promise<void> {
+  public async updateCurrentSprint(settings: AgileTaskNotesSettings): Promise<void> {
 
     var encoded64Key = Buffer.from(`${settings.jiraSettings.email}:${settings.jiraSettings.apiToken}`).toString("base64");
 
@@ -55,7 +55,7 @@ export class JiraClient implements ITfsClient{
       });
 
       // Create markdown files based on remote task in current sprint
-      await Promise.all(VaultHelper.createTaskNotes(normalizedFolderPath, tasks));
+      await Promise.all(VaultHelper.createTaskNotes(normalizedFolderPath, tasks, settings.noteTemplate));
       
       // Get the column names from the Jira board
       var boardConfigResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/board/${settings.jiraSettings.boardId}/configuration` })

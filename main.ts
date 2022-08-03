@@ -3,9 +3,10 @@ import { AzureDevopsClient, AzureDevopsSettings, AZURE_DEVOPS_DEFAULT_SETTINGS }
 import { ITfsClient } from './src/Clients/ITfsClient';
 import { JiraClient, JiraSettings, JIRA_DEFAULT_SETTINGS } from './src/Clients/JiraClient';
 
-interface AgileTaskNotesSettings {
+export interface AgileTaskNotesSettings {
   selectedTfsClient: string,
   targetFolder: string,
+  noteTemplate: string,
 	azureDevopsSettings: AzureDevopsSettings,
   jiraSettings: JiraSettings
 }
@@ -13,6 +14,7 @@ interface AgileTaskNotesSettings {
 const DEFAULT_SETTINGS: AgileTaskNotesSettings = {
   selectedTfsClient: 'AzureDevops',
   targetFolder: '',
+  noteTemplate: '# {{TASK_TITLE}}\n#{{TASK_TYPE}}\n\nLink: {{TASK_LINK}}\n\n#todo:\n- [ ] Create todo list\n- [ ] \n\n## Notes:\n',
   azureDevopsSettings: AZURE_DEVOPS_DEFAULT_SETTINGS,
   jiraSettings: JIRA_DEFAULT_SETTINGS
 }
@@ -94,10 +96,7 @@ class AgileTaskNotesPluginSettingTab extends PluginSettingTab {
 
     plugin.tfsClientImplementations[plugin.settings.selectedTfsClient].setupSettings(containerEl, plugin);
 
-
     containerEl.createEl('h2', {text: 'Vault Settings'});
-
-    //TODO: Create a template input (see dictionary plugin for ex) -> use variables like {{title of task}}
 
     new Setting(containerEl)
     .setName('Target Folder (Optional)')
@@ -110,15 +109,23 @@ class AgileTaskNotesPluginSettingTab extends PluginSettingTab {
         await plugin.saveSettings();
       }));
 
-    /*const templateDescription = document.createDocumentFragment();
-    templateDescription.append(
-        'Here you can edit the Template for newly created Files.',
-        templateDescription.createEl("br"),
-        templateDescription.createEl("a", {
-            href: "https://github.com/phibr0/obsidian-dictionary#variables",
-            text: 'Click for a List of Variables',
-        }),
-    );*/
-
+    new Setting(containerEl)
+    .setName('Inital Task Content')
+    .setDesc('Set the inital content for each new task note. Available variables: {{TASK_TITLE}}, {{TASK_TYPE}}, {{TASK_LINK}}')
+    .addTextArea(text => {
+        text
+            .setPlaceholder('Initial content in raw markdown format')
+            .setValue(this.plugin.settings.noteTemplate)
+            .onChange(async (value) => {
+                try {
+                    this.plugin.settings.noteTemplate = value;
+                    await this.plugin.saveSettings();
+                } catch (e) {
+                    return false;
+                }
+            })
+        text.inputEl.rows = 8;
+        text.inputEl.cols = 50;
+    });
 	}
 }

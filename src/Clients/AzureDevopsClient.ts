@@ -1,4 +1,4 @@
-import AgileTaskNotesPlugin from 'main';
+import AgileTaskNotesPlugin, { AgileTaskNotesSettings } from 'main';
 import { normalizePath, requestUrl, Setting, TFile, Vault } from 'obsidian';
 import { VaultHelper } from 'src/VaultHelper'
 import { ITfsClient } from './ITfsClient';
@@ -30,7 +30,7 @@ export class AzureDevopsClient implements ITfsClient{
   
   clientName: string = 'AzureDevops';
 
-  public async updateCurrentSprint(settings: any): Promise<void> {
+  public async updateCurrentSprint(settings: AgileTaskNotesSettings): Promise<void> {
 
     var encoded64PAT = Buffer.from(`:${settings.azureDevopsSettings.accessToken}`).toString("base64");
 
@@ -64,7 +64,7 @@ export class AzureDevopsClient implements ITfsClient{
       });
 
       // Create markdown files based on remote task in current sprint
-      await Promise.all(VaultHelper.createTaskNotes(normalizedFolderPath, tasks))
+      await Promise.all(VaultHelper.createTaskNotes(normalizedFolderPath, tasks, settings.noteTemplate))
         .catch(e => VaultHelper.logError(e));
       
       // Create or replace Kanban board of current sprint
