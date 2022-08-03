@@ -36,7 +36,7 @@ export class JiraClient implements ITfsClient{
     const BaseURL = `https://${settings.jiraSettings.baseUrl}/rest/agile/1.0`;
 
     try {
-      var sprintsResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/board/${settings.jiraSettings.boardId}/sprint` });
+      var sprintsResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/board/${settings.jiraSettings.boardId}/sprint` })
 
       var currentSprintId = sprintsResponse.json.values.filter((sprint:any) => sprint.state === 'active')[0].id;
       
@@ -55,13 +55,15 @@ export class JiraClient implements ITfsClient{
       });
 
       // Create markdown files based on remote task in current sprint
-      await Promise.all(VaultHelper.createTaskNotes(normalizedFolderPath, tasks))
-        .catch(e => VaultHelper.logError(e));
+      await Promise.all(VaultHelper.createTaskNotes(normalizedFolderPath, tasks));
       
+      // Get the column names from the Jira board
+      var boardConfigResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/board/${settings.jiraSettings.boardId}/configuration` })
+
+      var columnIds = boardConfigResponse.json.columnConfig.columns.map((column:any) => column.name);
+
       // Create or replace Kanban board of current sprint
-      var columnIds = settings.columns.split(",");
-      await VaultHelper.createKanbanBoard(normalizedFolderPath, tasks, columnIds, currentSprintId)
-        .catch(e => VaultHelper.logError(e));
+      await VaultHelper.createKanbanBoard(normalizedFolderPath, tasks, columnIds, currentSprintId);
 
     } catch(e) {
       VaultHelper.logError(e);

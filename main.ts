@@ -6,7 +6,6 @@ import { JiraClient, JiraSettings, JIRA_DEFAULT_SETTINGS } from './src/Clients/J
 interface AgileTaskNotesSettings {
   selectedTfsClient: string,
   targetFolder: string,
-  columns: string,
 	azureDevopsSettings: AzureDevopsSettings,
   jiraSettings: JiraSettings
 }
@@ -14,7 +13,6 @@ interface AgileTaskNotesSettings {
 const DEFAULT_SETTINGS: AgileTaskNotesSettings = {
   selectedTfsClient: 'AzureDevops',
   targetFolder: '',
-  columns: 'Pending,In Progress,In Merge,In Verification,Closed',
   azureDevopsSettings: AZURE_DEVOPS_DEFAULT_SETTINGS,
   jiraSettings: JIRA_DEFAULT_SETTINGS
 }
@@ -109,17 +107,6 @@ class AgileTaskNotesPluginSettingTab extends PluginSettingTab {
       .setValue(plugin.settings.targetFolder)
       .onChange(async (value) => {
         plugin.settings.targetFolder = value;
-        await plugin.saveSettings();
-      }));
-
-    new Setting(containerEl)
-    .setName('Column Names')
-    .setDesc('Line-separated list of column key names from TFS board to be used in Kanban board')
-    .addText(text => text
-      .setPlaceholder('Enter comma-seperated list')
-      .setValue(plugin.settings.columns)
-      .onChange(async (value) => {
-        plugin.settings.columns = value;
         await plugin.saveSettings();
       }));
 

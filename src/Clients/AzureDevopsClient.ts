@@ -11,6 +11,7 @@ export interface AzureDevopsSettings {
   team: string,
   username: string,
   accessToken: string,
+  columns: string
 }
 
 export const AZURE_DEVOPS_DEFAULT_SETTINGS: AzureDevopsSettings = {
@@ -19,7 +20,8 @@ export const AZURE_DEVOPS_DEFAULT_SETTINGS: AzureDevopsSettings = {
   project: '',
   team: '',
   username: '',
-  accessToken: ''
+  accessToken: '',
+  columns: 'Pending,In Progress,In Merge,In Verification,Closed'
 }
 
 const TASKS_QUERY: string = "{\"query\": \"Select [System.Id], [System.Title], [System.State] From WorkItems Where [Assigned to] = \\\"{0}\\\"\"}" // username
@@ -66,7 +68,7 @@ export class AzureDevopsClient implements ITfsClient{
         .catch(e => VaultHelper.logError(e));
       
       // Create or replace Kanban board of current sprint
-      var columnIds = settings.columns.split("\n");
+      var columnIds = settings.azureDevopsSettings.columns.split(',').map((columnName:string) => columnName.trim());
       await VaultHelper.createKanbanBoard(normalizedFolderPath, tasks, columnIds, currentSprint.name)
         .catch(e => VaultHelper.logError(e));
     
@@ -141,6 +143,17 @@ export class AzureDevopsClient implements ITfsClient{
       .setValue(plugin.settings.azureDevopsSettings.accessToken)
       .onChange(async (value) => {
         plugin.settings.azureDevopsSettings.accessToken = value;
+        await plugin.saveSettings();
+      }));
+
+    new Setting(container)
+    .setName('Column Names')
+    .setDesc('Line-separated list of column key names from your team sprint board to be used in Kanban board')
+    .addText(text => text
+      .setPlaceholder('Enter comma-seperated list')
+      .setValue(plugin.settings.azureDevopsSettings.columns)
+      .onChange(async (value) => {
+        plugin.settings.azureDevopsSettings.columns = value;
         await plugin.saveSettings();
       }));
   }
