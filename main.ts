@@ -7,6 +7,7 @@ export interface AgileTaskNotesSettings {
   selectedTfsClient: string,
   targetFolder: string,
   noteTemplate: string,
+  intervalMinutes: number,
 	azureDevopsSettings: AzureDevopsSettings,
   jiraSettings: JiraSettings
 }
@@ -15,6 +16,7 @@ const DEFAULT_SETTINGS: AgileTaskNotesSettings = {
   selectedTfsClient: 'AzureDevops',
   targetFolder: '',
   noteTemplate: '# {{TASK_TITLE}}\n#{{TASK_TYPE}}\n\nLink: {{TASK_LINK}}\n\n#todo:\n- [ ] Create todo list\n- [ ] \n\n## Notes:\n',
+  intervalMinutes: 0,
   azureDevopsSettings: AZURE_DEVOPS_DEFAULT_SETTINGS,
   jiraSettings: JIRA_DEFAULT_SETTINGS
 }
@@ -51,6 +53,10 @@ export default class AgileTaskNotesPlugin extends Plugin {
 		});
 
 		this.addSettingTab(new AgileTaskNotesPluginSettingTab(this.app, this));
+
+    if (this.settings.intervalMinutes > 0) {
+      this.registerInterval(window.setInterval(() => this.tfsClientImplementations[this.settings.selectedTfsClient].updateCurrentSprint(this.settings), this.settings.intervalMinutes * 60000));
+    }
 	}
 
 	onunload() {
@@ -127,5 +133,16 @@ class AgileTaskNotesPluginSettingTab extends PluginSettingTab {
         text.inputEl.rows = 8;
         text.inputEl.cols = 50;
     });
+
+    new Setting(containerEl)
+    .setName('Update interval')
+    .setDesc('Interval (in minutes) to periodically update the kanban board and notes. Set to 0 for only manual updating. You\'ll need to restart Obsidian for this to take effect. Note: when an update occurs it will close the kanban board if it is open thus a number over 10 mins is recommended.')
+    .addText(text => text
+      .setPlaceholder('Enter number in minutes')
+      .setValue(plugin.settings.intervalMinutes.toString())
+      .onChange(async (value) => {
+        plugin.settings.intervalMinutes = parseInt(value);
+        await plugin.saveSettings();
+      }));
 	}
 }
