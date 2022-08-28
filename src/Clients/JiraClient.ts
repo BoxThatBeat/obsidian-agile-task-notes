@@ -57,13 +57,16 @@ export class JiraClient implements ITfsClient{
       // Create markdown files based on remote task in current sprint
       await Promise.all(VaultHelper.createTaskNotes(normalizedFolderPath, tasks, settings.noteTemplate));
       
-      // Get the column names from the Jira board
-      var boardConfigResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/board/${settings.jiraSettings.boardId}/configuration` })
+      if (settings.createKanban) {
+        
+        // Get the column names from the Jira board
+        var boardConfigResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/board/${settings.jiraSettings.boardId}/configuration` })
 
-      var columnIds = boardConfigResponse.json.columnConfig.columns.map((column:any) => column.name);
+        var columnIds = boardConfigResponse.json.columnConfig.columns.map((column:any) => column.name);
 
-      // Create or replace Kanban board of current sprint
-      await VaultHelper.createKanbanBoard(normalizedFolderPath, tasks, columnIds, currentSprintId);
+        // Create or replace Kanban board of current sprint
+        await VaultHelper.createKanbanBoard(normalizedFolderPath, tasks, columnIds, currentSprintId);
+      }
 
     } catch(e) {
       VaultHelper.logError(e);

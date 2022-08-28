@@ -8,6 +8,7 @@ export interface AgileTaskNotesSettings {
   targetFolder: string,
   noteTemplate: string,
   intervalMinutes: number,
+  createKanban: boolean,
 	azureDevopsSettings: AzureDevopsSettings,
   jiraSettings: JiraSettings
 }
@@ -17,6 +18,7 @@ const DEFAULT_SETTINGS: AgileTaskNotesSettings = {
   targetFolder: '',
   noteTemplate: '# {{TASK_TITLE}}\n#{{TASK_TYPE}}\n\nLink: {{TASK_LINK}}\n\n#todo:\n- [ ] Create todo list\n- [ ] \n\n## Notes:\n',
   intervalMinutes: 0,
+  createKanban: true,
   azureDevopsSettings: AZURE_DEVOPS_DEFAULT_SETTINGS,
   jiraSettings: JIRA_DEFAULT_SETTINGS
 }
@@ -142,6 +144,16 @@ class AgileTaskNotesPluginSettingTab extends PluginSettingTab {
       .setValue(plugin.settings.intervalMinutes.toString())
       .onChange(async (value) => {
         plugin.settings.intervalMinutes = parseInt(value);
+        await plugin.saveSettings();
+      }));
+
+    new Setting(containerEl)
+    .setName('Create Kanban board?')
+    .setDesc('Should a Kanban board be generated for the current sprint (requires the Kanban board plugin in addition to this one)')
+    .addToggle(toggle => toggle
+      .setValue(plugin.settings.createKanban)
+      .onChange(async (value) => {
+        plugin.settings.createKanban = value
         await plugin.saveSettings();
       }));
 	}

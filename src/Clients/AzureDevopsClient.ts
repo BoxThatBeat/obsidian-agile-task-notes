@@ -67,10 +67,13 @@ export class AzureDevopsClient implements ITfsClient{
       await Promise.all(VaultHelper.createTaskNotes(normalizedFolderPath, tasks, settings.noteTemplate))
         .catch(e => VaultHelper.logError(e));
       
-      // Create or replace Kanban board of current sprint
-      var columnIds = settings.azureDevopsSettings.columns.split(',').map((columnName:string) => columnName.trim());
-      await VaultHelper.createKanbanBoard(normalizedFolderPath, tasks, columnIds, currentSprint.name)
-        .catch(e => VaultHelper.logError(e));
+      if (settings.createKanban) {
+        
+        // Create or replace Kanban board of current sprint
+        var columnIds = settings.azureDevopsSettings.columns.split(',').map((columnName:string) => columnName.trim());
+        await VaultHelper.createKanbanBoard(normalizedFolderPath, tasks, columnIds, currentSprint.name)
+          .catch(e => VaultHelper.logError(e));
+      }
     
     } catch(e) {
       VaultHelper.logError(e);
