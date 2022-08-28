@@ -3,7 +3,7 @@
 	"name": "Agile Task Notes",
 	"version": "1.0.1",
 	"minAppVersion": "0.12.0",
-	"description": "Automated grabbing of tasks from TFS (Jira or AzureDevops) in the form of notes and todo lists in your Obsidian vault. Also creates a local kanban board for easy management of tasks. Best used with plugin \"Kanban\" by mgmeyers and \"Checklist\" by delashum.",
+	"description": "Import your tasks from your TFS (Azure or Jira) to take notes on them and make todo-lists!",
 	"author": "BoxThatBeat",
 	"authorUrl": "https://github.com/BoxThatBeat",
 	"isDesktopOnly": false

@@ -1,7 +1,7 @@
 {
 	"name": "obsidian-agile-task-notes",
 	"version": "1.0.0",
-	"description": "Automated grabbing of tasks from TFS in the form of notes and todo lists in your Obsidian vault",
+	"description": "Automated grabbing of tasks from TFS (AzureDevops or Jira)",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
