@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-agile-task-notes",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "Automated grabbing of tasks from TFS (AzureDevops or Jira)",
 	"main": "main.js",
 	"scripts": {
@@ -10,10 +10,10 @@
 	},
 	"keywords": [],
 	"author": "BoxThatBeat",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/BoxThatBeat/obsidian-agile-task-notes"
-  },
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/BoxThatBeat/obsidian-agile-task-notes"
+	},
 	"license": "MIT",
 	"devDependencies": {
 		"@types/node": "^16.11.6",
