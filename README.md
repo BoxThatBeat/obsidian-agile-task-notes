@@ -15,7 +15,7 @@ This plugin currently supports these TFS systems: {**Jira**, **Azure Devops**}
 
 
 ## Features:
-- Generates creates local copy of Kanban board with only tasks assigned to you for easy task navigation in Obsidian
+- Generates local copy of Kanban board with only tasks assigned to you for easy task navigation in Obsidian
 - Automatically creates all your tasks as files where you can add notes and todo lists for your tasks
 - Customize starter content of the generated task notes in settings
 
@@ -31,10 +31,10 @@ If Kanban is not installed, there will be no UI for the Kanban board. However, t
 There are 3 options for updating your tasks from TFS:
 - Using the Update Interval setting to grab updates every x minutes automatically
 - Using the left-hand button
-- Using the command pallet "Update Current Sprint"
+- Using the command palette "Update Current Sprint"
 
 Notes:
-- The generated kaban board for the sprint is destroyed and replaced each time updates are pulled from TFS. This has the following implications:
+- The generated kanban board for the sprint is destroyed and replaced each time updates are pulled from TFS. This has the following implications:
 	- Any manual changes to the kanban board of the current sprint will be deleted on each update of the board
 	- The Time Interval setting should not be too low since when the kanban board note is openned when it is updated, it will close since it is deleted and replaced
 - Please make backups of task notes since there may be bugs in this code and they could be removed.
@@ -44,7 +44,7 @@ Notes:
 ### From within Obsidian
 From Obsidian v0.9.8, you can activate this plugin within Obsidian by doing the following:
 - Open Settings > Third-party plugin
-- Make sure Safe mode is **off**
+- Make sure Restricted mode is **off**
 - Click Browse community plugins
 - Search for this plugin
 - Click Install

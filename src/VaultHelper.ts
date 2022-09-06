@@ -38,11 +38,7 @@ export class VaultHelper {
 
     for (let i = 0; i < files.length; i++) {
       if (files[i].path.contains(id)) {
-
-        var partsOfPath = files[i].path.split("/");
-        var filename = partsOfPath[partsOfPath.length - 1];
-        
-        return filename.substring(0, filename.length-3);; // remove ".md"
+        return files[i].basename
       }
     }
 
@@ -67,7 +63,7 @@ export class VaultHelper {
    */
   public static createTaskNotes(path: string, tasks: Array<Task>, template: string): Promise<TFile>[] {
 
-    var promisesToCreateNotes: Promise<TFile>[] = [];
+    let promisesToCreateNotes: Promise<TFile>[] = [];
     tasks.forEach(task => { 
       if (this.getFilenameByTaskId(task.id).length === 0) {
         promisesToCreateNotes.push(this.createTaskNote(path, task, template));
@@ -86,15 +82,15 @@ export class VaultHelper {
    * @public
    */
   public static createKanbanBoard(path: string, tasks: Array<Task>, columns: Array<string>, sprintName: string): Promise<TFile> {
-    var filename = `${sprintName}-Board`;
-    var filepath = path + `/${filename}.md`;
-    var existantBoard = app.vault.getAbstractFileByPath(filepath);
+    const filename = `${sprintName}-Board`;
+    const filepath = path + `/${filename}.md`;
+    const existingBoard = app.vault.getAbstractFileByPath(filepath);
 
-    if (existantBoard != null) {
-      app.vault.delete(existantBoard, true);
+    if (existingBoard != null) {
+      app.vault.delete(existingBoard, true);
     }
 
-    var boardMD = this.BOARD_TEMPLATE_START;
+    let boardMD = this.BOARD_TEMPLATE_START;
     
     // Create Kanban board with specified columns matching the state of each task
     columns.forEach((column: string) => {
@@ -118,10 +114,10 @@ export class VaultHelper {
   }
 
   private static async createTaskNote(path: string, task: Task, template:string): Promise<TFile> {
-    var filename = VaultHelper.formatTaskFilename(task.type, task.id);
-    var filepath = path + `/${filename}.md`;
+    const filename = VaultHelper.formatTaskFilename(task.type, task.id);
+    const filepath = path + `/${filename}.md`;
 
-    var content = template
+    let content = template
             .replace(/{{TASK_TITLE}}/g, task.title)
             .replace(/{{TASK_TYPE}}/g, task.type.replace(/ /g,''))
             .replace(/{{TASK_LINK}}/g, task.link);

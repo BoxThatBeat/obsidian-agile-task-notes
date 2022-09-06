@@ -26,7 +26,7 @@ export class JiraClient implements ITfsClient{
 
   public async updateCurrentSprint(settings: AgileTaskNotesSettings): Promise<void> {
 
-    var encoded64Key = Buffer.from(`${settings.jiraSettings.email}:${settings.jiraSettings.apiToken}`).toString("base64");
+    const encoded64Key = Buffer.from(`${settings.jiraSettings.email}:${settings.jiraSettings.apiToken}`).toString("base64");
 
     const headers = {
       "Authorization": `Basic ${encoded64Key}`,
@@ -36,20 +36,20 @@ export class JiraClient implements ITfsClient{
     const BaseURL = `https://${settings.jiraSettings.baseUrl}/rest/agile/1.0`;
 
     try {
-      var sprintsResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/board/${settings.jiraSettings.boardId}/sprint` })
+      const sprintsResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/board/${settings.jiraSettings.boardId}/sprint` })
 
-      var currentSprintId = sprintsResponse.json.values.filter((sprint:any) => sprint.state === 'active')[0].id;
+      const currentSprintId = sprintsResponse.json.values.filter((sprint:any) => sprint.state === 'active')[0].id;
       
-      var issuesResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/board/${settings.jiraSettings.boardId}/sprint/${currentSprintId}/issue?jql=assignee=\"${settings.jiraSettings.name}\"` });
+      const issuesResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/board/${settings.jiraSettings.boardId}/sprint/${currentSprintId}/issue?jql=assignee=\"${settings.jiraSettings.name}\"` });
 
-      var assignedIssuesInSprint = issuesResponse.json.issues;
+      const assignedIssuesInSprint = issuesResponse.json.issues;
 
-      var normalizedFolderPath =  normalizePath(settings.targetFolder + '/sprint-' + currentSprintId);
+      const normalizedFolderPath =  normalizePath(settings.targetFolder + '/sprint-' + currentSprintId);
 
       // Ensure folder structure created
       VaultHelper.createFolders(normalizedFolderPath);
 
-      var tasks:Array<Task> = [];
+      let tasks:Array<Task> = [];
       assignedIssuesInSprint.forEach((task:any) => {
         tasks.push(new Task(task.key, task.fields["status"]["statusCategory"]["name"], task.fields["summary"], task.fields["issuetype"]["name"], `https://${settings.jiraSettings.baseUrl}/browse/${task.key}`));
       });
@@ -60,9 +60,9 @@ export class JiraClient implements ITfsClient{
       if (settings.createKanban) {
         
         // Get the column names from the Jira board
-        var boardConfigResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/board/${settings.jiraSettings.boardId}/configuration` })
+        const boardConfigResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/board/${settings.jiraSettings.boardId}/configuration` })
 
-        var columnIds = boardConfigResponse.json.columnConfig.columns.map((column:any) => column.name);
+        const columnIds = boardConfigResponse.json.columnConfig.columns.map((column:any) => column.name);
 
         // Create or replace Kanban board of current sprint
         await VaultHelper.createKanbanBoard(normalizedFolderPath, tasks, columnIds, currentSprintId);

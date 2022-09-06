@@ -32,7 +32,7 @@ export class AzureDevopsClient implements ITfsClient{
 
   public async updateCurrentSprint(settings: AgileTaskNotesSettings): Promise<void> {
 
-    var encoded64PAT = Buffer.from(`:${settings.azureDevopsSettings.accessToken}`).toString("base64");
+    const encoded64PAT = Buffer.from(`:${settings.azureDevopsSettings.accessToken}`).toString("base64");
 
     const headers = {
       "Authorization": `Basic ${encoded64PAT}`,
@@ -41,24 +41,24 @@ export class AzureDevopsClient implements ITfsClient{
 
     const BaseURL = `https://${settings.azureDevopsSettings.instance}/${settings.azureDevopsSettings.collection}/${settings.azureDevopsSettings.project}`;
 
-    var username = settings.azureDevopsSettings.username.replace("\'", "\\'");
+    const username = settings.azureDevopsSettings.username.replace("\'", "\\'");
 
     try {
-      var iterationResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/${settings.azureDevopsSettings.team}/_apis/work/teamsettings/iterations?$timeframe=current&api-version=6.0` });
-      var tasksReponse = await requestUrl({method: 'POST', body: TASKS_QUERY.format(username), headers: headers, url: `${BaseURL}/${settings.azureDevopsSettings.team}/_apis/wit/wiql?api-version=6.0` });
+      const iterationResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/${settings.azureDevopsSettings.team}/_apis/work/teamsettings/iterations?$timeframe=current&api-version=6.0` });
+      const tasksReponse = await requestUrl({method: 'POST', body: TASKS_QUERY.format(username), headers: headers, url: `${BaseURL}/${settings.azureDevopsSettings.team}/_apis/wit/wiql?api-version=6.0` });
 
-      var currentSprint = iterationResponse.json.value[0];
-      var userAssignedTaskIds = tasksReponse.json.workItems;
-      var normalizedFolderPath =  normalizePath(settings.targetFolder + '/' + currentSprint.path);
+      const currentSprint = iterationResponse.json.value[0];
+      const userAssignedTaskIds = tasksReponse.json.workItems;
+      const normalizedFolderPath =  normalizePath(settings.targetFolder + '/' + currentSprint.path);
 
       // Ensure folder structure created
       VaultHelper.createFolders(normalizedFolderPath);
 
       // Get user's assigned tasks in current sprint
-      var userAssignedTasks = await Promise.all(userAssignedTaskIds.map((task: any) => requestUrl({ method: 'GET', headers: headers, url: task.url}).then((r) => r.json)));
-      var tasksInCurrentSprint = userAssignedTasks.filter(task => task.fields["System.IterationPath"] === currentSprint.path);
+      const userAssignedTasks = await Promise.all(userAssignedTaskIds.map((task: any) => requestUrl({ method: 'GET', headers: headers, url: task.url}).then((r) => r.json)));
+      const tasksInCurrentSprint = userAssignedTasks.filter(task => task.fields["System.IterationPath"] === currentSprint.path);
 
-      var tasks:Array<Task> = [];
+      let tasks:Array<Task> = [];
       tasksInCurrentSprint.forEach((task:any) => {
         tasks.push(new Task(task.id, task.fields["System.State"], task.fields["System.Title"], task.fields["System.WorkItemType"], `https://${settings.azureDevopsSettings.instance}/${settings.azureDevopsSettings.collection}/${settings.azureDevopsSettings.project}/_workitems/edit/${task.id}`));
       });
@@ -70,7 +70,7 @@ export class AzureDevopsClient implements ITfsClient{
       if (settings.createKanban) {
         
         // Create or replace Kanban board of current sprint
-        var columnIds = settings.azureDevopsSettings.columns.split(',').map((columnName:string) => columnName.trim());
+        const columnIds = settings.azureDevopsSettings.columns.split(',').map((columnName:string) => columnName.trim());
         await VaultHelper.createKanbanBoard(normalizedFolderPath, tasks, columnIds, currentSprint.name)
           .catch(e => VaultHelper.logError(e));
       }

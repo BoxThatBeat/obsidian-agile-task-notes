@@ -31,8 +31,8 @@ export default class AgileTaskNotesPlugin extends Plugin {
 	async onload() {
 
     // Add TFS backend implmentations
-    var azureDevopsClient:ITfsClient = new AzureDevopsClient();
-    var jiraClient: ITfsClient = new JiraClient();
+    const azureDevopsClient:ITfsClient = new AzureDevopsClient();
+    const jiraClient: ITfsClient = new JiraClient();
     
     this.tfsClientImplementations[azureDevopsClient.clientName] = azureDevopsClient;
     this.tfsClientImplementations[jiraClient.clientName] = jiraClient;
