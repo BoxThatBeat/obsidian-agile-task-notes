@@ -36,9 +36,9 @@ export class JiraClient implements ITfsClient{
     const BaseURL = `https://${settings.jiraSettings.baseUrl}/rest/agile/1.0`;
 
     try {
-      const sprintsResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/board/${settings.jiraSettings.boardId}/sprint` })
+      const sprintsResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/board/${settings.jiraSettings.boardId}/sprint?state=active` })
 
-      const currentSprintId = sprintsResponse.json.values.filter((sprint:any) => sprint.state === 'active')[0].id;
+      const currentSprintId = sprintsResponse.json.values[0].id;
       
       const issuesResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/board/${settings.jiraSettings.boardId}/sprint/${currentSprintId}/issue?jql=assignee=\"${settings.jiraSettings.name}\"` });
 
