@@ -9,7 +9,8 @@ export interface JiraSettings {
   name: string,
   email: string,
   apiToken: string,
-  boardId: string
+  boardId: string,
+  useSprintName: boolean
 }
 
 export const JIRA_DEFAULT_SETTINGS: JiraSettings = {
@@ -17,7 +18,8 @@ export const JIRA_DEFAULT_SETTINGS: JiraSettings = {
 	name: '',
   email: '',
   apiToken: '',
-  boardId: ''
+  boardId: '',
+  useSprintName: true,
 }
 
 export class JiraClient implements ITfsClient{
@@ -32,19 +34,25 @@ export class JiraClient implements ITfsClient{
       "Authorization": `Basic ${encoded64Key}`,
       "Content-Type": "application/json"
     }
-
     const BaseURL = `https://${settings.jiraSettings.baseUrl}/rest/agile/1.0`;
 
     try {
       const sprintsResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/board/${settings.jiraSettings.boardId}/sprint?state=active` })
-
-      const currentSprintId = sprintsResponse.json.values[0].id;
-      
+      const currentSprintId = sprintsResponse.json.values[0].id 
+	  const currentSprintName = sprintsResponse.json.values[0].name
+		.replace(/Sprint/, '')
+		.replace(/Board/, '')
+	  	.replace(/^\s+|\s+$/g, '')
+		.replace(/[^a-z0-9 -]/g, '')
+	  	.replace(/\s+/g, '-')
+		.replace(/-+/g, '-')
+		
+	  const sprintIdentifier = settings.jiraSettings.useSprintName ? currentSprintName : currentSprintId
       const issuesResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/board/${settings.jiraSettings.boardId}/sprint/${currentSprintId}/issue?jql=assignee=\"${settings.jiraSettings.name}\"` });
 
       const assignedIssuesInSprint = issuesResponse.json.issues;
 
-      const normalizedFolderPath =  normalizePath(settings.targetFolder + '/sprint-' + currentSprintId);
+      const normalizedFolderPath =  normalizePath(settings.targetFolder + '/sprint-' + sprintIdentifier);
 
       // Ensure folder structure created
       VaultHelper.createFolders(normalizedFolderPath);
@@ -65,7 +73,7 @@ export class JiraClient implements ITfsClient{
         const columnIds = boardConfigResponse.json.columnConfig.columns.map((column:any) => column.name);
 
         // Create or replace Kanban board of current sprint
-        await VaultHelper.createKanbanBoard(normalizedFolderPath, tasks, columnIds, currentSprintId);
+        await VaultHelper.createKanbanBoard(normalizedFolderPath, tasks, columnIds, sprintIdentifier);
       }
 
     } catch(e) {
@@ -119,7 +127,16 @@ export class JiraClient implements ITfsClient{
         plugin.settings.jiraSettings.apiToken = value;
         await plugin.saveSettings();
       }));
-
+	new Setting(container)
+	.setName('Use Sprint Name (rather than id)')
+	.setDesc("Uses the Sprint's human assigned name")
+	.addToggle(text => text
+		.setValue(plugin.settings.jiraSettings.useSprintName)
+      	.onChange(async (value) => {
+    	    plugin.settings.jiraSettings.useSprintName = value;
+     	   await plugin.saveSettings();
+   	   })
+	);
     new Setting(container)
     .setName('Board ID')
     .setDesc('The ID of your Scrum board (the number in the URL when viewing scrum board in browser) ')
