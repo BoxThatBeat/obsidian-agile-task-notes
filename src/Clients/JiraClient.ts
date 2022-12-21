@@ -42,9 +42,9 @@ export class JiraClient implements ITfsClient{
 	  const currentSprintName = sprintsResponse.json.values[0].name
 		.replace(/Sprint/, '')
 		.replace(/Board/, '')
-	  	.replace(/^\s+|\s+$/g, '')
-		.replace(/[^a-z0-9 -]/g, '')
-	  	.replace(/\s+/g, '-')
+	  .replace(/^\s+|\s+$/g, '')
+		.replace(/[^a-zA-Z0-9 -]/g, '')
+	  .replace(/\s+/g, '-')
 		.replace(/-+/g, '-')
 		
 	  const sprintIdentifier = settings.jiraSettings.useSprintName ? currentSprintName : currentSprintId
