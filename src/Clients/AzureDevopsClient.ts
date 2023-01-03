@@ -24,7 +24,7 @@ export const AZURE_DEVOPS_DEFAULT_SETTINGS: AzureDevopsSettings = {
   columns: 'Pending,In Progress,In Merge,In Verification,Closed'
 }
 
-const TASKS_QUERY: string = "{\"query\": \"Select [System.Id], [System.Title], [System.State] From WorkItems Where [Assigned to] = \\\"{0}\\\"\"}" // username
+const TASKS_QUERY: string = '{"query": "Select [System.Id], [System.Title], [System.State] From WorkItems Where [Assigned to] = \\"{0}\\" AND [System.IterationPath] UNDER \\"{1}\\""}' // username, iteration path
 
 export class AzureDevopsClient implements ITfsClient{
   
@@ -45,21 +45,23 @@ export class AzureDevopsClient implements ITfsClient{
 
     try {
       const iterationResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/${settings.azureDevopsSettings.team}/_apis/work/teamsettings/iterations?$timeframe=current&api-version=6.0` });
-      const tasksReponse = await requestUrl({method: 'POST', body: TASKS_QUERY.format(username), headers: headers, url: `${BaseURL}/${settings.azureDevopsSettings.team}/_apis/wit/wiql?api-version=6.0` });
-
       const currentSprint = iterationResponse.json.value[0];
+	  const normalizeIterationPath = currentSprint.path.normalize().replace(/\\/g, '\\\\');
+		
+	  // Get task assigned to username in current iteration
+	  const tasksReponse = await requestUrl({method: 'POST', body: TASKS_QUERY.format(username, normalizeIterationPath), headers: headers, url: `${BaseURL}/${settings.azureDevopsSettings.team}/_apis/wit/wiql?api-version=6.0` });
       const userAssignedTaskIds = tasksReponse.json.workItems;
+
       const normalizedFolderPath =  normalizePath(settings.targetFolder + '/' + currentSprint.path);
 
       // Ensure folder structure created
       VaultHelper.createFolders(normalizedFolderPath);
 
-      // Get user's assigned tasks in current sprint
+      // Get user's assigned tasks
       const userAssignedTasks = await Promise.all(userAssignedTaskIds.map((task: any) => requestUrl({ method: 'GET', headers: headers, url: task.url}).then((r) => r.json)));
-      const tasksInCurrentSprint = userAssignedTasks.filter(task => task.fields["System.IterationPath"] === currentSprint.path);
-
+      
       let tasks:Array<Task> = [];
-      tasksInCurrentSprint.forEach((task:any) => {
+      userAssignedTasks.forEach((task:any) => {
         tasks.push(new Task(task.id, task.fields["System.State"], task.fields["System.Title"], task.fields["System.WorkItemType"], `https://${settings.azureDevopsSettings.instance}/${settings.azureDevopsSettings.collection}/${settings.azureDevopsSettings.project}/_workitems/edit/${task.id}`));
       });
 
