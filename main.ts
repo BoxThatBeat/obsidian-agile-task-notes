@@ -16,7 +16,7 @@ export interface AgileTaskNotesSettings {
 const DEFAULT_SETTINGS: AgileTaskNotesSettings = {
   selectedTfsClient: 'AzureDevops',
   targetFolder: '',
-  noteTemplate: '# {{TASK_TITLE}}\n#{{TASK_TYPE}}\n\nid: {{TASK_ID}}\n\nstate: {{TASK_STATE}}\n\nAssignedTo: {{TASK_ASSIGNEDTO}}\n\nLink: {{TASK_LINK}}\n\n#todo:\n- [ ] Create todo list\n- [ ] \n\n## Notes:\n',
+  noteTemplate: '# {{TASK_TITLE}}\n#{{TASK_TYPE}}\n\nid: {{TASK_ID}}\nstate: {{TASK_STATE}}\nAssignedTo: {{TASK_ASSIGNEDTO}}\n\nLink: {{TASK_LINK}}\n\n#todo:\n- [ ] Create todo list\n- [ ] \n\n## Notes:\n',
   intervalMinutes: 0,
   createKanban: true,
   azureDevopsSettings: AZURE_DEVOPS_DEFAULT_SETTINGS,

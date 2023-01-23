@@ -16,7 +16,7 @@ export interface AzureDevopsSettings {
 
 export const AZURE_DEVOPS_DEFAULT_SETTINGS: AzureDevopsSettings = {
 	instance: '',
-  collection: 'DefaultCollection',
+  collection: '',
   project: '',
   team: '',
   username: '',
@@ -61,7 +61,7 @@ export class AzureDevopsClient implements ITfsClient{
       const userAssignedTasks = await Promise.all(userAssignedTaskIds.map((task: any) => requestUrl({ method: 'GET', headers: headers, url: task.url}).then((r) => r.json)));
       
       let tasks:Array<Task> = [];
-      tasksInCurrentSprint.forEach((task:any) => {
+      userAssignedTasks.forEach((task:any) => {
         tasks.push(new Task(task.id, task.fields["System.State"], task.fields["System.Title"], task.fields["System.WorkItemType"], task.fields["System.AssignedTo"]["displayName"], `https://${settings.azureDevopsSettings.instance}/${settings.azureDevopsSettings.collection}/${settings.azureDevopsSettings.project}/_workitems/edit/${task.id}`));
       });
 
@@ -87,7 +87,7 @@ export class AzureDevopsClient implements ITfsClient{
 
 		new Setting(container)
 			.setName('Instance')
-			.setDesc('TFS server name (BaseURL)')
+			.setDesc('TFS server name (ex: dev.azure.com/OrgName)')
 			.addText(text => text
 				.setPlaceholder('Enter instance base url')
 				.setValue(plugin.settings.azureDevopsSettings.instance)
@@ -98,7 +98,7 @@ export class AzureDevopsClient implements ITfsClient{
 
     new Setting(container)
     .setName('Collection')
-    .setDesc('The name of the Azure DevOps collection')
+    .setDesc('The name of the Azure DevOps collection (leave empty if it does not apply)')
     .addText(text => text
       .setPlaceholder('Enter Collection Name')
       .setValue(plugin.settings.azureDevopsSettings.collection)
