@@ -60,7 +60,7 @@ export class AzureDevopsClient implements ITfsClient{
 
       let tasks:Array<Task> = [];
       tasksInCurrentSprint.forEach((task:any) => {
-        tasks.push(new Task(task.id, task.fields["System.State"], task.fields["System.Title"], task.fields["System.WorkItemType"], `https://${settings.azureDevopsSettings.instance}/${settings.azureDevopsSettings.collection}/${settings.azureDevopsSettings.project}/_workitems/edit/${task.id}`));
+        tasks.push(new Task(task.id, task.fields["System.State"], task.fields["System.Title"], task.fields["System.WorkItemType"], task.fields["System.AssignedTo"]["displayName"], `https://${settings.azureDevopsSettings.instance}/${settings.azureDevopsSettings.collection}/${settings.azureDevopsSettings.project}/_workitems/edit/${task.id}`));
       });
 
       // Create markdown files based on remote task in current sprint
