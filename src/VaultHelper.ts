@@ -37,10 +37,12 @@ export class VaultHelper {
   public static getFilenameByTaskId(path: string, id: string) : string {
     const files = app.vault.getMarkdownFiles()
 
+    const projectPath = path.slice(0, path.lastIndexOf('/')) // Remove the specific sprint since files can be in old sprints
+
     for (let i = 0; i < files.length; i++) {
 
       let filePath = files[i].path
-      if (filePath.startsWith(path) && filePath.contains(id)) {
+      if (filePath.startsWith(projectPath) && filePath.contains(id)) {
         return files[i].basename
       }
     }
