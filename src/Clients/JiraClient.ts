@@ -44,9 +44,9 @@ export class JiraClient implements ITfsClient{
 	  const currentSprintName = sprintsResponse.json.values[0].name
 		.replace(/Sprint/, '')
 		.replace(/Board/, '')
-	  	.replace(/^\s+|\s+$/g, '')
-		.replace(/[^a-z0-9 -]/g, '')
-	  	.replace(/\s+/g, '-')
+	  .replace(/^\s+|\s+$/g, '')
+		.replace(/[^a-zA-Z0-9 -]/g, '')
+	  .replace(/\s+/g, '-')
 		.replace(/-+/g, '-')
 		
 	  const sprintIdentifier = settings.jiraSettings.useSprintName ? currentSprintName : currentSprintId
@@ -61,7 +61,7 @@ export class JiraClient implements ITfsClient{
 
       let tasks:Array<Task> = [];
       assignedIssuesInSprint.forEach((task:any) => {
-        tasks.push(new Task(task.key, task.fields["status"]["statusCategory"]["name"], task.fields["summary"], task.fields["issuetype"]["name"], `https://${settings.jiraSettings.baseUrl}/browse/${task.key}`));
+        tasks.push(new Task(task.key, task.fields["status"]["statusCategory"]["name"], task.fields["summary"], task.fields["issuetype"]["name"], task.fields["assignee"]["displayName"], `https://${settings.jiraSettings.baseUrl}/browse/${task.key}`));
       });
 
       // Create markdown files based on remote task in current sprint

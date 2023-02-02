@@ -29,15 +29,20 @@ export class VaultHelper {
   }
 
   /**
-   * Will return a filename if the provided id is in the title of a markdown file in the vault
-   * @param id - The string to search for in all filenames in the vault
+   * Will return a filename if the provided id is in the folder of the provided path
+   * @param path - The vault path to search in
+   * @param id - The string to search for in the path folder
    * @public
    */
-  public static getFilenameByTaskId(id: string) : string {
+  public static getFilenameByTaskId(path: string, id: string) : string {
     const files = app.vault.getMarkdownFiles()
 
+    const projectPath = path.slice(0, path.lastIndexOf('/')) // Remove the specific sprint since files can be in old sprints
+
     for (let i = 0; i < files.length; i++) {
-      if (files[i].path.contains(id)) {
+
+      let filePath = files[i].path
+      if (filePath.startsWith(projectPath) && filePath.contains(id)) {
         return files[i].basename
       }
     }
@@ -65,7 +70,7 @@ export class VaultHelper {
 
     let promisesToCreateNotes: Promise<TFile>[] = [];
     tasks.forEach(task => { 
-      if (this.getFilenameByTaskId(task.id).length === 0) {
+      if (this.getFilenameByTaskId(path, task.id) === '') {
         promisesToCreateNotes.push(this.createTaskNote(path, task, template));
       }
     });
@@ -100,7 +105,7 @@ export class VaultHelper {
 
       tasks.forEach((task: Task) => {
         if (task.state === column) {
-          var taskFilename = this.getFilenameByTaskId(task.id);
+          var taskFilename = this.getFilenameByTaskId(path, task.id);
           boardMD += `- [ ] [[${taskFilename}]] \n ${task.title}\n`
         }
       });
@@ -118,8 +123,11 @@ export class VaultHelper {
     const filepath = path + `/${filename}.md`;
 
     let content = template
+            .replace(/{{TASK_ID}}/g, task.id)
             .replace(/{{TASK_TITLE}}/g, task.title)
+            .replace(/{{TASK_STATE}}/g, task.state)
             .replace(/{{TASK_TYPE}}/g, task.type.replace(/ /g,''))
+            .replace(/{{TASK_ASSIGNEDTO}}/g, task.assignedTo)
             .replace(/{{TASK_LINK}}/g, task.link);
 
     return app.vault.create(filepath, content);
