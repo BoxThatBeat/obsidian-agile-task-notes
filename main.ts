@@ -74,7 +74,7 @@ export default class AgileTaskNotesPlugin extends Plugin {
 	}
 }
 
-class AgileTaskNotesPluginSettingTab extends PluginSettingTab {
+export class AgileTaskNotesPluginSettingTab extends PluginSettingTab {
 	plugin: AgileTaskNotesPlugin;
 
 	constructor(app: App, plugin: AgileTaskNotesPlugin) {
@@ -102,7 +102,7 @@ class AgileTaskNotesPluginSettingTab extends PluginSettingTab {
           });
       });
 
-    plugin.tfsClientImplementations[plugin.settings.selectedTfsClient].setupSettings(containerEl, plugin);
+    plugin.tfsClientImplementations[plugin.settings.selectedTfsClient].setupSettings(containerEl, plugin, this);
 
     containerEl.createEl('h2', {text: 'Vault Settings'});
 

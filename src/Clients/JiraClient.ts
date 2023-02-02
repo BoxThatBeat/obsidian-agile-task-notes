@@ -1,4 +1,4 @@
-import AgileTaskNotesPlugin, { AgileTaskNotesSettings } from 'main';
+import AgileTaskNotesPlugin, { AgileTaskNotesPluginSettingTab, AgileTaskNotesSettings } from 'main';
 import { normalizePath, requestUrl, Setting, TFile } from 'obsidian';
 import { Task } from 'src/Task';
 import { VaultHelper } from 'src/VaultHelper'
@@ -10,7 +10,8 @@ export interface JiraSettings {
   email: string,
   apiToken: string,
   boardId: string,
-  useSprintName: boolean
+  useSprintName: boolean,
+  mode: string
 }
 
 export const JIRA_DEFAULT_SETTINGS: JiraSettings = {
@@ -20,6 +21,7 @@ export const JIRA_DEFAULT_SETTINGS: JiraSettings = {
   apiToken: '',
   boardId: '',
   useSprintName: true,
+  mode: 'Sprints'
 }
 
 export class JiraClient implements ITfsClient{
@@ -81,7 +83,7 @@ export class JiraClient implements ITfsClient{
     }
   }
 
-  public setupSettings(container: HTMLElement, plugin: AgileTaskNotesPlugin): any {
+  public setupSettings(container: HTMLElement, plugin: AgileTaskNotesPlugin, settingsTab: AgileTaskNotesPluginSettingTab): any {
     container.createEl('h2', {text: 'Jira Remote Repo Settings'});
 
     new Setting(container)
@@ -127,16 +129,35 @@ export class JiraClient implements ITfsClient{
         plugin.settings.jiraSettings.apiToken = value;
         await plugin.saveSettings();
       }));
-	new Setting(container)
-	.setName('Use Sprint Name (rather than id)')
-	.setDesc("Uses the Sprint's human assigned name")
-	.addToggle(text => text
-		.setValue(plugin.settings.jiraSettings.useSprintName)
-      	.onChange(async (value) => {
-    	    plugin.settings.jiraSettings.useSprintName = value;
-     	   await plugin.saveSettings();
-   	   })
-	);
+
+    new Setting(container)
+      .setName('Mode')
+      .setDesc('Select how you use Jira.')
+      .addDropdown((dropdown) => {
+        dropdown.addOption("kanban", "Kanban");
+        dropdown.addOption("sprints", "Sprints");
+        dropdown.setValue(plugin.settings.jiraSettings.mode)
+          .onChange(async (value) => {
+            plugin.settings.jiraSettings.mode = value;
+            await plugin.saveSettings();
+            settingsTab.display();
+          });
+      });
+    
+    if(plugin.settings.jiraSettings.mode == 'sprints') {
+      console.log(plugin.settings.jiraSettings.mode);
+      new Setting(container)
+        .setName('Use Sprint Name (rather than id)')
+        .setDesc("Uses the Sprint's human assigned name")
+        .addToggle(text => text
+          .setValue(plugin.settings.jiraSettings.useSprintName)
+              .onChange(async (value) => {
+                plugin.settings.jiraSettings.useSprintName = value;
+              await plugin.saveSettings();
+            })
+        );
+    }
+
     new Setting(container)
     .setName('Board ID')
     .setDesc('The ID of your Scrum board (the number in the URL when viewing scrum board in browser) ')
