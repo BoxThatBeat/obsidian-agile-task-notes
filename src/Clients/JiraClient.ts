@@ -8,6 +8,7 @@ export interface JiraSettings {
   baseUrl: string,
   name: string,
   email: string,
+  authmode: string,
   apiToken: string,
   boardId: string,
   useSprintName: boolean
@@ -17,6 +18,7 @@ export const JIRA_DEFAULT_SETTINGS: JiraSettings = {
   baseUrl: '{yourserver}.atlassian.net',
 	name: '',
   email: '',
+  authmode: 'basic',
   apiToken: '',
   boardId: '',
   useSprintName: true,
@@ -28,26 +30,32 @@ export class JiraClient implements ITfsClient{
 
   public async updateCurrentSprint(settings: AgileTaskNotesSettings): Promise<void> {
 
-    const encoded64Key = Buffer.from(`${settings.jiraSettings.email}:${settings.jiraSettings.apiToken}`).toString("base64");
-
     const headers = {
-      "Authorization": `Basic ${encoded64Key}`,
+      "Authorization": '',
       "Content-Type": "application/json"
     }
+    switch(settings.jiraSettings.authmode) {
+      case 'basic':
+        const encoded64Key = Buffer.from(`${settings.jiraSettings.email}:${settings.jiraSettings.apiToken}`).toString("base64");
+        headers.Authorization = `Basic ${encoded64Key}`
+      case 'bearer':
+        headers.Authorization = `Bearer ${settings.jiraSettings.apiToken}`
+    }
+
     const BaseURL = `https://${settings.jiraSettings.baseUrl}/rest/agile/1.0`;
 
     try {
       const sprintsResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/board/${settings.jiraSettings.boardId}/sprint?state=active` })
       const currentSprintId = sprintsResponse.json.values[0].id 
-	  const currentSprintName = sprintsResponse.json.values[0].name
-		.replace(/Sprint/, '')
-		.replace(/Board/, '')
-	  .replace(/^\s+|\s+$/g, '')
-		.replace(/[^a-zA-Z0-9 -]/g, '')
-	  .replace(/\s+/g, '-')
-		.replace(/-+/g, '-')
+      const currentSprintName = sprintsResponse.json.values[0].name
+        .replace(/Sprint/, '')
+        .replace(/Board/, '')
+        .replace(/^\s+|\s+$/g, '')
+        .replace(/[^a-zA-Z0-9 -]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
 		
-	  const sprintIdentifier = settings.jiraSettings.useSprintName ? currentSprintName : currentSprintId
+	    const sprintIdentifier = settings.jiraSettings.useSprintName ? currentSprintName : currentSprintId
       const issuesResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/board/${settings.jiraSettings.boardId}/sprint/${currentSprintId}/issue?jql=assignee=\"${settings.jiraSettings.name}\"` });
 
       const assignedIssuesInSprint = issuesResponse.json.issues;
@@ -123,41 +131,43 @@ export class JiraClient implements ITfsClient{
       .addDropdown((dropdown) => {
         dropdown.addOption("basic", "Basic Auth");
         dropdown.addOption("bearer", "Personal Access Token");
-        dropdown.setValue("basic")
+        dropdown.setValue(plugin.settings.jiraSettings.authmode)
           .onChange(async (value) => {
+            plugin.settings.jiraSettings.authmode = value;
             await plugin.saveSettings();
           });
       });
 
     new Setting(container)
-    .setName('API Token')
-    .setDesc('The API token generated with your account')
-    .addText(text => text
-      .setPlaceholder('Enter API token')
-      .setValue(plugin.settings.jiraSettings.apiToken)
-      .onChange(async (value) => {
-        plugin.settings.jiraSettings.apiToken = value;
-        await plugin.saveSettings();
-      }));
-	new Setting(container)
-	.setName('Use Sprint Name (rather than id)')
-	.setDesc("Uses the Sprint's human assigned name")
-	.addToggle(text => text
-		.setValue(plugin.settings.jiraSettings.useSprintName)
-      	.onChange(async (value) => {
-    	    plugin.settings.jiraSettings.useSprintName = value;
-     	   await plugin.saveSettings();
-   	   })
-	);
+      .setName('API Token')
+      .setDesc('The API token generated with your account')
+      .addText(text => text
+        .setPlaceholder('Enter API token')
+        .setValue(plugin.settings.jiraSettings.apiToken)
+        .onChange(async (value) => {
+          plugin.settings.jiraSettings.apiToken = value;
+          await plugin.saveSettings();
+        }));
+
     new Setting(container)
-    .setName('Board ID')
-    .setDesc('The ID of your Scrum board (the number in the URL when viewing scrum board in browser) ')
-    .addText(text => text
-      .setPlaceholder('Enter Board ID')
-      .setValue(plugin.settings.jiraSettings.boardId)
-      .onChange(async (value) => {
-        plugin.settings.jiraSettings.boardId = value;
-        await plugin.saveSettings();
-      }));
+      .setName('Use Sprint Name (rather than id)')
+      .setDesc("Uses the Sprint's human assigned name")
+      .addToggle(text => text
+        .setValue(plugin.settings.jiraSettings.useSprintName)
+          .onChange(async (value) => {
+          plugin.settings.jiraSettings.useSprintName = value;
+          await plugin.saveSettings();
+        }));
+
+    new Setting(container)
+      .setName('Board ID')
+      .setDesc('The ID of your Scrum board (the number in the URL when viewing scrum board in browser) ')
+      .addText(text => text
+        .setPlaceholder('Enter Board ID')
+        .setValue(plugin.settings.jiraSettings.boardId)
+        .onChange(async (value) => {
+          plugin.settings.jiraSettings.boardId = value;
+          await plugin.saveSettings();
+        }));
   }
 }
