@@ -23,7 +23,7 @@ export const JIRA_DEFAULT_SETTINGS: JiraSettings = {
   apiToken: '',
   boardId: '',
   useSprintName: true,
-  mode: 'Sprints'
+  mode: 'sprints'
 }
 
 export class JiraClient implements ITfsClient{
@@ -58,8 +58,8 @@ export class JiraClient implements ITfsClient{
         .replace(/[^a-zA-Z0-9 -]/g, '')
         .replace(/\s+/g, '-')
         .replace(/-+/g, '-')
-		
-	    const sprintIdentifier = settings.jiraSettings.useSprintName ? currentSprintName : currentSprintId
+
+      const sprintIdentifier = settings.jiraSettings.useSprintName ? currentSprintName : currentSprintId
       const issuesResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/board/${settings.jiraSettings.boardId}/sprint/${currentSprintId}/issue?jql=assignee=\"${settings.jiraSettings.name}\"` });
 
       const assignedIssuesInSprint = issuesResponse.json.issues;
@@ -154,6 +154,21 @@ export class JiraClient implements ITfsClient{
         }));
 
     new Setting(container)
+      .setName('Mode')
+      .setDesc('Set the mode corresponding to how you use Jira')
+      .addDropdown((dropdown) => {
+        dropdown.addOption("sprints", "Sprints");
+        dropdown.addOption("kanban", "Kanban");
+        dropdown.setValue(plugin.settings.jiraSettings.mode)
+          .onChange(async (value) => {
+            plugin.settings.jiraSettings.mode = value;
+            await plugin.saveSettings();
+            settingsTab.display()
+          });
+      });
+
+    if (plugin.settings.jiraSettings.mode == 'sprints') {
+      new Setting(container)
       .setName('Use Sprint Name (rather than id)')
       .setDesc("Uses the Sprint's human assigned name")
       .addToggle(text => text
@@ -162,6 +177,7 @@ export class JiraClient implements ITfsClient{
           plugin.settings.jiraSettings.useSprintName = value;
           await plugin.saveSettings();
         }));
+    }
 
     new Setting(container)
       .setName('Board ID')
