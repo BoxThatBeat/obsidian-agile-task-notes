@@ -30,7 +30,7 @@ export class AzureDevopsClient implements ITfsClient{
   
   clientName: string = 'AzureDevops';
 
-  public async updateCurrentSprint(settings: AgileTaskNotesSettings): Promise<void> {
+  public async update(settings: AgileTaskNotesSettings): Promise<void> {
 
     const encoded64PAT = Buffer.from(`:${settings.azureDevopsSettings.accessToken}`).toString("base64");
 

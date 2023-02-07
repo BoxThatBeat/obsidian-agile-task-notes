@@ -16,7 +16,7 @@ export interface ITfsClient {
    * @param settings - The plugin settings
    * @public
    */
-  updateCurrentSprint(settings: any): Promise<void>;
+  update(settings: any): Promise<void>;
 
   /**
    * Creates all the required UI elements for this client's settings

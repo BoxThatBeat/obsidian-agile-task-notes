@@ -41,7 +41,7 @@ export default class AgileTaskNotesPlugin extends Plugin {
 
 		// This creates an icon in the left ribbon for updating boards.
 		this.addRibbonIcon('dice', 'Update Current Sprint', () => {
-			this.tfsClientImplementations[this.settings.selectedTfsClient].updateCurrentSprint(this.settings);
+			this.tfsClientImplementations[this.settings.selectedTfsClient].update(this.settings);
       new Notice('Updated current sprint successfully!');
 		});
 
@@ -49,7 +49,7 @@ export default class AgileTaskNotesPlugin extends Plugin {
 			id: 'aupdate-current-sprint',
 			name: 'Update Current Sprint',
 			callback: () => {
-				this.tfsClientImplementations[this.settings.selectedTfsClient].updateCurrentSprint(this.settings);
+				this.tfsClientImplementations[this.settings.selectedTfsClient].update(this.settings);
         new Notice('Updated current sprint successfully!');
 			}
 		});
@@ -57,7 +57,7 @@ export default class AgileTaskNotesPlugin extends Plugin {
 		this.addSettingTab(new AgileTaskNotesPluginSettingTab(this.app, this));
 
     if (this.settings.intervalMinutes > 0) {
-      this.registerInterval(window.setInterval(() => this.tfsClientImplementations[this.settings.selectedTfsClient].updateCurrentSprint(this.settings), this.settings.intervalMinutes * 60000));
+      this.registerInterval(window.setInterval(() => this.tfsClientImplementations[this.settings.selectedTfsClient].update(this.settings), this.settings.intervalMinutes * 60000));
     }
 	}
 

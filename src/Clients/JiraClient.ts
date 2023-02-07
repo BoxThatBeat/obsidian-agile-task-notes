@@ -30,7 +30,7 @@ export class JiraClient implements ITfsClient{
   
   clientName: string = 'Jira';
 
-  public async updateCurrentSprint(settings: AgileTaskNotesSettings): Promise<void> {
+  public async update(settings: AgileTaskNotesSettings): Promise<void> {
 
     const headers = {
       "Authorization": '',
