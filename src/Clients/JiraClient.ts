@@ -32,19 +32,16 @@ export class JiraClient implements ITfsClient{
 
   public async update(settings: AgileTaskNotesSettings): Promise<void> {
 
-    const headers = {
+    var headers = {
       "Authorization": '',
       "Content-Type": "application/json"
     }
-    switch(settings.jiraSettings.authmode) {
-      case 'basic': {
+    if(settings.jiraSettings.authmode == 'basic') {
         const encoded64Key = Buffer.from(`${settings.jiraSettings.email}:${settings.jiraSettings.apiToken}`).toString("base64");
         headers.Authorization = `Basic ${encoded64Key}`
-      }
-      case 'bearer': {
+    } else if(settings.jiraSettings.authmode = 'bearer') {
         headers.Authorization = `Bearer ${settings.jiraSettings.apiToken}`
-      }
-    }
+    } 
 
     const BaseURL = `https://${settings.jiraSettings.baseUrl}/rest/agile/1.0`;
 
