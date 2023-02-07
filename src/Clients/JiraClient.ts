@@ -118,6 +118,18 @@ export class JiraClient implements ITfsClient{
 				}));
 
     new Setting(container)
+      .setName('Authorization mode')
+      .setDesc('Set the mode of authorization to be used')
+      .addDropdown((dropdown) => {
+        dropdown.addOption("basic", "Basic Auth");
+        dropdown.addOption("bearer", "Personal Access Token");
+        dropdown.setValue("basic")
+          .onChange(async (value) => {
+            await plugin.saveSettings();
+          });
+      });
+
+    new Setting(container)
     .setName('API Token')
     .setDesc('The API token generated with your account')
     .addText(text => text
