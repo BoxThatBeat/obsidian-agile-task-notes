@@ -37,11 +37,13 @@ export class JiraClient implements ITfsClient{
       "Content-Type": "application/json"
     }
     switch(settings.jiraSettings.authmode) {
-      case 'basic':
+      case 'basic': {
         const encoded64Key = Buffer.from(`${settings.jiraSettings.email}:${settings.jiraSettings.apiToken}`).toString("base64");
         headers.Authorization = `Basic ${encoded64Key}`
-      case 'bearer':
+      }
+      case 'bearer': {
         headers.Authorization = `Bearer ${settings.jiraSettings.apiToken}`
+      }
     }
 
     const BaseURL = `https://${settings.jiraSettings.baseUrl}/rest/agile/1.0`;
