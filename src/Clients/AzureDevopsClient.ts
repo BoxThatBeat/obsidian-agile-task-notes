@@ -46,10 +46,10 @@ export class AzureDevopsClient implements ITfsClient{
     try {
       const iterationResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/${settings.azureDevopsSettings.team}/_apis/work/teamsettings/iterations?$timeframe=current&api-version=6.0` });
       const currentSprint = iterationResponse.json.value[0];
-	  const normalizeIterationPath = currentSprint.path.normalize().replace(/\\/g, '\\\\');
-		
-	  // Get task assigned to username in current iteration
-	  const tasksReponse = await requestUrl({method: 'POST', body: TASKS_QUERY.format(username, normalizeIterationPath), headers: headers, url: `${BaseURL}/${settings.azureDevopsSettings.team}/_apis/wit/wiql?api-version=6.0` });
+      const normalizeIterationPath = currentSprint.path.normalize().replace(/\\/g, '\\\\');
+      
+      // Get task assigned to username in current iteration
+      const tasksReponse = await requestUrl({method: 'POST', body: TASKS_QUERY.format(username, normalizeIterationPath), headers: headers, url: `${BaseURL}/${settings.azureDevopsSettings.team}/_apis/wit/wiql?api-version=6.0` });
       const userAssignedTaskIds = tasksReponse.json.workItems;
 
       const normalizedFolderPath =  normalizePath(settings.targetFolder + '/' + currentSprint.path);
@@ -62,7 +62,7 @@ export class AzureDevopsClient implements ITfsClient{
       
       let tasks:Array<Task> = [];
       userAssignedTasks.forEach((task:any) => {
-        tasks.push(new Task(task.id, task.fields["System.State"], task.fields["System.Title"], task.fields["System.WorkItemType"], task.fields["System.AssignedTo"]["displayName"], `https://${settings.azureDevopsSettings.instance}/${settings.azureDevopsSettings.collection}/${settings.azureDevopsSettings.project}/_workitems/edit/${task.id}`));
+        tasks.push(new Task(task.id, task.fields["System.State"], task.fields["System.Title"], task.fields["System.WorkItemType"], task.fields["System.AssignedTo"]["displayName"], `https://${settings.azureDevopsSettings.instance}/${settings.azureDevopsSettings.collection}/${settings.azureDevopsSettings.project}/_workitems/edit/${task.id}`, task.fields["System.Description"]));
       });
 
       // Create markdown files based on remote task in current sprint

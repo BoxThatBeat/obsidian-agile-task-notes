@@ -55,8 +55,8 @@ export class JiraClient implements ITfsClient{
         .replace(/[^a-zA-Z0-9 -]/g, '')
         .replace(/\s+/g, '-')
         .replace(/-+/g, '-')
-
-      const sprintIdentifier = settings.jiraSettings.useSprintName ? currentSprintName : currentSprintId
+		
+	    const sprintIdentifier = settings.jiraSettings.useSprintName ? currentSprintName : currentSprintId
       const issuesResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/board/${settings.jiraSettings.boardId}/sprint/${currentSprintId}/issue?jql=assignee=\"${settings.jiraSettings.name}\"` });
 
       const assignedIssuesInSprint = issuesResponse.json.issues;
@@ -68,7 +68,7 @@ export class JiraClient implements ITfsClient{
 
       let tasks:Array<Task> = [];
       assignedIssuesInSprint.forEach((task:any) => {
-        tasks.push(new Task(task.key, task.fields["status"]["statusCategory"]["name"], task.fields["summary"], task.fields["issuetype"]["name"], task.fields["assignee"]["displayName"], `https://${settings.jiraSettings.baseUrl}/browse/${task.key}`));
+        tasks.push(new Task(task.key, task.fields["status"]["statusCategory"]["name"], task.fields["summary"], task.fields["issuetype"]["name"], task.fields["assignee"]["displayName"], `https://${settings.jiraSettings.baseUrl}/browse/${task.key}`, task.fields["description"]));
       });
 
       // Create markdown files based on remote task in current sprint

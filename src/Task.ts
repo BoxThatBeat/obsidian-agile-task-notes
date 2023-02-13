@@ -10,13 +10,15 @@ export class Task {
   public type: string;
   public assignedTo: string;
   public link: string;
+  public desc: string;
 
-  constructor(id: string, state: string, title: string, type: string, assignedTo: string, link: string) {
+  constructor(id: string, state: string, title: string, type: string, assignedTo: string, link: string, desc: string) {
     this.id = id;
     this.state = state;
     this.title = title;
     this.type = type;    
     this.assignedTo = assignedTo;
     this.link = link;
+    this.desc = desc;
   }
 }

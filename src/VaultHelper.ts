@@ -130,6 +130,12 @@ export class VaultHelper {
             .replace(/{{TASK_ASSIGNEDTO}}/g, task.assignedTo)
             .replace(/{{TASK_LINK}}/g, task.link);
 
+    if (task.desc != null) {
+      content = content.replace(/{{TASK_DESCRIPTION}}/g, task.desc);
+    } else {
+      content = content.replace(/{{TASK_DESCRIPTION}}/g, '');
+    }
+
     return app.vault.create(filepath, content);
   }
 }
