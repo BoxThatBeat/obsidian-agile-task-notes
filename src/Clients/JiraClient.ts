@@ -89,8 +89,9 @@ export class JiraClient implements ITfsClient{
           // Create or replace Kanban board of current sprint
           await VaultHelper.createKanbanBoard(normalizedFolderPath, tasks, columnIds, sprintIdentifier);
         }
+
       } else if(settings.jiraSettings.mode == 'kanban') {
-        console.log(settings.jiraSettings)
+
         const activeColsQueryString = "(" + settings.jiraSettings.columnsActive.split(',').map(s => `\"${s}\"`).join(',') + ")";
         const finalColsQueryString = `(${settings.jiraSettings.columnsFinal.split(',').map(s => `\"${s}\"`).join(',')})`;
         const queryIssues = async (issueQueryString: string): Promise<RequestUrlResponse>  => { 
@@ -122,8 +123,6 @@ export class JiraClient implements ITfsClient{
 
         // Move Notes with final state to Final folder
         const finalTasks = createTaskArray(assignedFinalIssues);
-        console.log(assignedFinalIssues)
-        console.log(finalTasks)
         const finalTaskNoteFiles = finalTasks.map(task => VaultHelper.getAbstractFileByTaskId(settings.targetFolder, task.id)).filter((file): file is TFile => !!file);
         finalTaskNoteFiles.forEach(file => app.vault.rename(file, normalizePath(settings.targetFolder + '/Final/' + file.name)));
 
@@ -222,9 +221,7 @@ export class JiraClient implements ITfsClient{
             plugin.settings.jiraSettings.useSprintName = value;
             await plugin.saveSettings();
           }));
-
-    } else {
-
+    } else if (plugin.settings.jiraSettings.mode == 'kanban') {
       new Setting(container)
         .setName('Working Column Names')
         .setDesc('Comma-separated list of column key names to be used to create notes')

@@ -60,7 +60,7 @@ export class VaultHelper {
   }
 
     /**
-   * Will return a filename if the provided id is in the folder of the provided path
+   * Will return a filehandle if the provided id is in the folder of the provided path
    * @param path - The vault path to search in
    * @param id - The string to search for in the path folder
    * @public
