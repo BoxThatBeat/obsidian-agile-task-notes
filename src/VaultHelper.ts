@@ -29,6 +29,15 @@ export class VaultHelper {
   }
 
   /**
+   * Creates all folders for all given paths if they are non-existent
+   * @param paths - The list of paths of folders to creates
+   * @public
+   */
+  public static createFoldersFromList(paths: string[]): void {
+    paths.forEach(path => this.createFolders(path));
+  }
+
+  /**
    * Will return a filename if the provided id is in the folder of the provided path
    * @param path - The vault path to search in
    * @param id - The string to search for in the path folder
@@ -49,6 +58,26 @@ export class VaultHelper {
 
     return "";
   }
+
+    /**
+   * Will return a filename if the provided id is in the folder of the provided path
+   * @param path - The vault path to search in
+   * @param id - The string to search for in the path folder
+   * @public
+   */
+    public static getAbstractFileByTaskId(path: string, id: string) : TFile | undefined {
+      const files = app.vault.getMarkdownFiles();
+  
+      const projectPath = path.slice(0, path.lastIndexOf('/')); // Remove the specific sprint since files can be in old sprints
+  
+      for (let i = 0; i < files.length; i++) {
+  
+        let filePath = files[i].path
+        if (filePath.startsWith(projectPath) && filePath.contains(id)) {
+          return files[i];
+        }
+      }
+    }
 
   /**
    * Formats a task filename in this format: "{type} - {id}"
