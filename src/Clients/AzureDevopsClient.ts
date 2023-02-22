@@ -9,7 +9,7 @@ export interface AzureDevopsSettings {
   collection: string,
   project: string,
   team: string,
-  username: string,
+  usernames: string,
   accessToken: string,
   columns: string
 }
@@ -19,7 +19,7 @@ export const AZURE_DEVOPS_DEFAULT_SETTINGS: AzureDevopsSettings = {
   collection: '',
   project: '',
   team: '',
-  username: '',
+  usernames: '',
   accessToken: '',
   columns: 'Pending,In Progress,In Merge,In Verification,Closed'
 }
@@ -41,7 +41,7 @@ export class AzureDevopsClient implements ITfsClient{
 
     const BaseURL = `https://${settings.azureDevopsSettings.instance}/${settings.azureDevopsSettings.collection}/${settings.azureDevopsSettings.project}`;
 
-    const username = settings.azureDevopsSettings.username.replace("\'", "\\'");
+    const username = settings.azureDevopsSettings.usernames.replace("\'", "\\'");
 
     try {
       const iterationResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/${settings.azureDevopsSettings.team}/_apis/work/teamsettings/iterations?$timeframe=current&api-version=6.0` });
@@ -130,13 +130,13 @@ export class AzureDevopsClient implements ITfsClient{
       }));
 
     new Setting(container)
-    .setName('Username')
-    .setDesc('Your AzureDevops username (display name)')
+    .setName('Usernames')
+    .setDesc('A comma-separated list of usernames you want the tasks of. Simply put your username if you only need your own.')
     .addText(text => text
-      .setPlaceholder('Enter your name')
-      .setValue(plugin.settings.azureDevopsSettings.username)
+      .setPlaceholder('Enter usernames')
+      .setValue(plugin.settings.azureDevopsSettings.usernames)
       .onChange(async (value) => {
-        plugin.settings.azureDevopsSettings.username = value;
+        plugin.settings.azureDevopsSettings.usernames = value;
         await plugin.saveSettings();
       }));
 
@@ -155,7 +155,7 @@ export class AzureDevopsClient implements ITfsClient{
     .setName('Column Names')
     .setDesc('Line-separated list of column key names from your team sprint board to be used in Kanban board')
     .addText(text => text
-      .setPlaceholder('Enter comma-seperated list')
+      .setPlaceholder('Enter comma-separated list')
       .setValue(plugin.settings.azureDevopsSettings.columns)
       .onChange(async (value) => {
         plugin.settings.azureDevopsSettings.columns = value;

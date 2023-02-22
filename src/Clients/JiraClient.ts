@@ -1,12 +1,12 @@
 import AgileTaskNotesPlugin, { AgileTaskNotesSettings } from 'main';
-import { normalizePath, requestUrl, Setting, TFile } from 'obsidian';
+import { normalizePath, requestUrl, Setting, RequestUrlResponse } from 'obsidian';
 import { Task } from 'src/Task';
 import { VaultHelper } from 'src/VaultHelper'
 import { ITfsClient } from './ITfsClient';
 
 export interface JiraSettings {
   baseUrl: string,
-  name: string,
+  usernames: string,
   email: string,
   authmode: string,
   apiToken: string,
@@ -16,7 +16,7 @@ export interface JiraSettings {
 
 export const JIRA_DEFAULT_SETTINGS: JiraSettings = {
   baseUrl: '{yourserver}.atlassian.net',
-	name: '',
+	usernames: '',
   email: '',
   authmode: 'basic',
   apiToken: '',
@@ -55,18 +55,22 @@ export class JiraClient implements ITfsClient{
         .replace(/-+/g, '-')
 		
 	    const sprintIdentifier = settings.jiraSettings.useSprintName ? currentSprintName : currentSprintId
-      const issuesResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/board/${settings.jiraSettings.boardId}/sprint/${currentSprintId}/issue?jql=assignee=\"${settings.jiraSettings.name}\"` });
-
-      const assignedIssuesInSprint = issuesResponse.json.issues;
-
-      const normalizedFolderPath =  normalizePath(settings.targetFolder + '/sprint-' + sprintIdentifier);
 
       // Ensure folder structure created
+      const normalizedFolderPath =  normalizePath(settings.targetFolder + '/sprint-' + sprintIdentifier);
       VaultHelper.createFolders(normalizedFolderPath);
 
       let tasks:Array<Task> = [];
-      assignedIssuesInSprint.forEach((task:any) => {
-        tasks.push(new Task(task.key, task.fields["status"]["statusCategory"]["name"], task.fields["summary"], task.fields["issuetype"]["name"], task.fields["assignee"]["displayName"], `https://${settings.jiraSettings.baseUrl}/browse/${task.key}`, task.fields["description"]));
+      let usernames = settings.jiraSettings.usernames.split(',').map((username:string) => username.trim().replace("\'", "\\'"));
+
+      const issueResponseList = await Promise.all(usernames.map((username: string) => 
+        requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/board/${settings.jiraSettings.boardId}/sprint/${currentSprintId}/issue?jql=assignee=\"${username}\"` })
+      ));
+      
+      issueResponseList.forEach((issueResponse: any) => {
+        issueResponse.json.issues.forEach((issue:any) => {
+          tasks.push(new Task(issue.key, issue.fields["status"]["name"], issue.fields["summary"], issue.fields["issuetype"]["name"], issue.fields["assignee"]["displayName"], `https://${settings.jiraSettings.baseUrl}/browse/${issue.key}`, issue.fields["description"]));
+        });
       });
 
       // Create markdown files based on remote task in current sprint
@@ -103,13 +107,13 @@ export class JiraClient implements ITfsClient{
 				}));
 
     new Setting(container)
-      .setName('Name')
-      .setDesc('Your first and last name space separated that is used on Jira')
+      .setName('Usernames')
+      .setDesc('A comma-separated list of usernames you want the tasks of. Simply put your username if you only need your own.')
       .addText(text => text
-        .setPlaceholder('Enter first and last name')
-        .setValue(plugin.settings.jiraSettings.name)
+        .setPlaceholder('Enter usernames')
+        .setValue(plugin.settings.jiraSettings.usernames)
         .onChange(async (value) => {
-          plugin.settings.jiraSettings.name = value;
+          plugin.settings.jiraSettings.usernames = value;
           await plugin.saveSettings();
         }));
 
