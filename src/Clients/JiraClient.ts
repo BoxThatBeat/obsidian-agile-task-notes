@@ -73,7 +73,7 @@ export class JiraClient implements ITfsClient{
 
         let tasks:Array<Task> = [];
         assignedIssuesInSprint.forEach((task:any) => {
-          tasks.push(new Task(task.key, task.fields["status"]["statusCategory"]["name"], task.fields["summary"], task.fields["issuetype"]["name"], task.fields["assignee"]["displayName"], `https://${settings.jiraSettings.baseUrl}/browse/${task.key}`, task.fields["description"]));
+          tasks.push(new Task(task.key, task.fields["status"]["name"], task.fields["summary"], task.fields["issuetype"]["name"], task.fields["assignee"]["displayName"], `https://${settings.jiraSettings.baseUrl}/browse/${task.key}`, task.fields["description"]));
         });
 
         // Create markdown files based on remote task in current sprint
@@ -83,7 +83,6 @@ export class JiraClient implements ITfsClient{
           
           // Get the column names from the Jira board
           const boardConfigResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/board/${settings.jiraSettings.boardId}/configuration` })
-
           const columnIds = boardConfigResponse.json.columnConfig.columns.map((column:any) => column.name);
 
           // Create or replace Kanban board of current sprint
@@ -92,8 +91,8 @@ export class JiraClient implements ITfsClient{
 
       } else if(settings.jiraSettings.mode == 'kanban') {
 
-        const activeColsQueryString = "(" + settings.jiraSettings.columnsActive.split(',').map(s => `\"${s}\"`).join(',') + ")";
-        const finalColsQueryString = `(${settings.jiraSettings.columnsFinal.split(',').map(s => `\"${s}\"`).join(',')})`;
+        const activeColsQueryString = "(" + settings.jiraSettings.columnsActive.split(',').map(s => `\"${s.trim()}\"`).join(',') + ")";
+        const finalColsQueryString = `(${settings.jiraSettings.columnsFinal.split(',').map(s => `\"${s.trim()}\"`).join(',')})`;
         const queryIssues = async (issueQueryString: string): Promise<RequestUrlResponse>  => { 
           return await requestUrl(
             { 
@@ -112,25 +111,35 @@ export class JiraClient implements ITfsClient{
         const normalizedBaseFolderPath =  normalizePath(settings.targetFolder);
         const normalizedFinalfolderPath = normalizePath(finalFolder);
 
-        // Ensure folder structure created
+        // Ensure folder structures created
         VaultHelper.createFoldersFromList([normalizedBaseFolderPath, normalizedFinalfolderPath]);
 
         const createTaskArray = (issueList:any): Array<Task> => { 
           return issueList.map((issue:any) => {
-            return new Task(issue.key, issue.fields["status"]["statusCategory"]["name"], issue.fields["summary"], issue.fields["issuetype"]["name"], issue.fields["assignee"]["displayName"], `https://${settings.jiraSettings.baseUrl}/browse/${issue.key}`, issue.fields["description"])
+            return new Task(issue.key, issue.fields["status"]["name"], issue.fields["summary"], issue.fields["issuetype"]["name"], issue.fields["assignee"]["displayName"], `https://${settings.jiraSettings.baseUrl}/browse/${issue.key}`, issue.fields["description"])
           });
         };
 
-        // Move Notes with final state to Final folder
+        const activeTasks = createTaskArray(assignedActiveIssues);
         const finalTasks = createTaskArray(assignedFinalIssues);
+  
+        // Create markdown files
+        await Promise.all(VaultHelper.createTaskNotes(normalizedBaseFolderPath, activeTasks, settings.noteTemplate));
+        await Promise.all(VaultHelper.createTaskNotes(normalizedFinalfolderPath, finalTasks, settings.noteTemplate));
+
+        // Move pre-existing notes that became final state into the Final folder
         const finalTaskNoteFiles = finalTasks.map(task => VaultHelper.getAbstractFileByTaskId(settings.targetFolder, task.id)).filter((file): file is TFile => !!file);
         finalTaskNoteFiles.forEach(file => app.vault.rename(file, normalizePath(settings.targetFolder + '/Final/' + file.name)));
 
-        // Create new active notes
-        const activeTasks = createTaskArray(assignedActiveIssues);
-  
-        // Create markdown files based on remote task in current sprint
-        await Promise.all(VaultHelper.createTaskNotes(normalizedBaseFolderPath, activeTasks, settings.noteTemplate));
+        if (settings.createKanban) {
+          
+          // Get the column names from the Jira board
+          const boardConfigResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/board/${settings.jiraSettings.boardId}/configuration` })
+          const columnIds = boardConfigResponse.json.columnConfig.columns.map((column:any) => column.name);
+
+          // Create or replace Kanban board of current sprint
+          await VaultHelper.createKanbanBoard(normalizedBaseFolderPath, activeTasks.concat(finalTasks), columnIds, settings.jiraSettings.boardId);
+        }
       }
     } catch(e) {
       VaultHelper.logError(e);

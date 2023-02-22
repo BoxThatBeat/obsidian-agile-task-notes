@@ -112,11 +112,11 @@ export class VaultHelper {
    * @param path - The path to create each task at
    * @param tasks - An array of Tasks
    * @param columns - An array of column names to match state of the tasks with
-   * @param sprintName - The name of the current sprint
+   * @param prefix - The prefix to add to the kanban board name
    * @public
    */
-  public static createKanbanBoard(path: string, tasks: Array<Task>, columns: Array<string>, sprintName: string): Promise<TFile> {
-    const filename = `${sprintName}-Board`;
+  public static createKanbanBoard(path: string, tasks: Array<Task>, columns: Array<string>, prefix: string): Promise<TFile> {
+    const filename = `${prefix}-Board`;
     const filepath = path + `/${filename}.md`;
     const existingBoard = app.vault.getAbstractFileByPath(filepath);
 

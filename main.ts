@@ -40,17 +40,17 @@ export default class AgileTaskNotesPlugin extends Plugin {
     await this.loadSettings();
 
 		// This creates an icon in the left ribbon for updating boards.
-		this.addRibbonIcon('dice', 'Update Current Sprint', () => {
+		this.addRibbonIcon('dice', 'Update TFS Tasks', () => {
 			this.tfsClientImplementations[this.settings.selectedTfsClient].update(this.settings);
-      new Notice('Updated current sprint successfully!');
+      new Notice('Updated current tasks successfully!');
 		});
 
 		this.addCommand({
-			id: 'aupdate-current-sprint',
-			name: 'Update Current Sprint',
+			id: 'update-tfs-tasks',
+			name: 'Update TFS Tasks',
 			callback: () => {
 				this.tfsClientImplementations[this.settings.selectedTfsClient].update(this.settings);
-        new Notice('Updated current sprint successfully!');
+        new Notice('Updated current tasks successfully!');
 			}
 		});
 
