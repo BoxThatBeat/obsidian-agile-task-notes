@@ -13,7 +13,6 @@ export interface JiraSettings {
   boardId: string,
   useSprintName: boolean,
   mode: string,
-  columnsActive: string,
   columnsFinal: string
 }
 
@@ -26,7 +25,6 @@ export const JIRA_DEFAULT_SETTINGS: JiraSettings = {
   boardId: '',
   useSprintName: true,
   mode: 'sprints',
-  columnsActive: 'In Progress',
   columnsFinal: 'Done,Won\'t do'
 }
 
@@ -62,7 +60,13 @@ export class JiraClient implements ITfsClient{
           .replace(/-+/g, '-')
       
         const sprintIdentifier = settings.jiraSettings.useSprintName ? currentSprintName : currentSprintId
-        const issuesResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/board/${settings.jiraSettings.boardId}/sprint/${currentSprintId}/issue?jql=assignee=\"${settings.jiraSettings.name}\"` });
+        const issuesResponse = await requestUrl(
+          { 
+            method: 'GET', 
+            headers: headers, 
+            url: `${BaseURL}/board/${settings.jiraSettings.boardId}/sprint/${currentSprintId}/issue?jql=assignee=\"${settings.jiraSettings.name}\"&maxResults=1000` 
+          }
+        );
 
         const assignedIssuesInSprint = issuesResponse.json.issues;
 
@@ -73,7 +77,15 @@ export class JiraClient implements ITfsClient{
 
         let tasks:Array<Task> = [];
         assignedIssuesInSprint.forEach((task:any) => {
-          tasks.push(new Task(task.key, task.fields["status"]["name"], task.fields["summary"], task.fields["issuetype"]["name"], task.fields["assignee"]["displayName"], `https://${settings.jiraSettings.baseUrl}/browse/${task.key}`, task.fields["description"]));
+          tasks.push(new Task(
+            task.key, 
+            task.fields["status"]["name"], 
+            task.fields["summary"], 
+            task.fields["issuetype"]["name"], 
+            task.fields["assignee"]["displayName"], 
+            `https://${settings.jiraSettings.baseUrl}/browse/${task.key}`, 
+            task.fields["description"])
+          );
         });
 
         // Create markdown files based on remote task in current sprint
@@ -82,63 +94,81 @@ export class JiraClient implements ITfsClient{
         if (settings.createKanban) {
           
           // Get the column names from the Jira board
-          const boardConfigResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/board/${settings.jiraSettings.boardId}/configuration` })
+          const boardConfigResponse = await requestUrl(
+            { 
+              method: 'GET', 
+              headers: headers, 
+              url: `${BaseURL}/board/${settings.jiraSettings.boardId}/configuration` 
+            }
+          );
           const columnIds = boardConfigResponse.json.columnConfig.columns.map((column:any) => column.name);
 
-          // Create or replace Kanban board of current sprint
           await VaultHelper.createKanbanBoard(normalizedFolderPath, tasks, columnIds, sprintIdentifier);
         }
 
       } else if(settings.jiraSettings.mode == 'kanban') {
 
-        const activeColsQueryString = "(" + settings.jiraSettings.columnsActive.split(',').map(s => `\"${s.trim()}\"`).join(',') + ")";
-        const finalColsQueryString = `(${settings.jiraSettings.columnsFinal.split(',').map(s => `\"${s.trim()}\"`).join(',')})`;
-        const queryIssues = async (issueQueryString: string): Promise<RequestUrlResponse>  => { 
-          return await requestUrl(
-            { 
-              method: 'GET',
-              headers: headers,
-              url: `${BaseURL}/board/${settings.jiraSettings.boardId}/issue?jql=assignee=\"${settings.jiraSettings.name}\" and status in ${issueQueryString}&maxResults=1000`
-            }
-          )
-        };
-        const activeIssuesRes = await queryIssues(activeColsQueryString);
-        const finalIssuesRes = await queryIssues(finalColsQueryString);
-        const assignedActiveIssues = activeIssuesRes.json.issues;
-        const assignedFinalIssues = finalIssuesRes.json.issues;
-  
-        const finalFolder = settings.targetFolder + '/Final/';
+        const completedFolder = settings.targetFolder + '/Completed/';
         const normalizedBaseFolderPath =  normalizePath(settings.targetFolder);
-        const normalizedFinalfolderPath = normalizePath(finalFolder);
+        const normalizedCompletedfolderPath = normalizePath(completedFolder);
 
         // Ensure folder structures created
-        VaultHelper.createFoldersFromList([normalizedBaseFolderPath, normalizedFinalfolderPath]);
+        VaultHelper.createFoldersFromList([normalizedBaseFolderPath, normalizedCompletedfolderPath]);
 
-        const createTaskArray = (issueList:any): Array<Task> => { 
-          return issueList.map((issue:any) => {
-            return new Task(issue.key, issue.fields["status"]["name"], issue.fields["summary"], issue.fields["issuetype"]["name"], issue.fields["assignee"]["displayName"], `https://${settings.jiraSettings.baseUrl}/browse/${issue.key}`, issue.fields["description"])
-          });
-        };
+        const issuesResponse = await requestUrl(
+          { 
+            method: 'GET',
+            headers: headers,
+            url: `${BaseURL}/board/${settings.jiraSettings.boardId}/issue?jql=assignee=\"${settings.jiraSettings.name}\"&maxResults=1000`
+          }
+        );
 
-        const activeTasks = createTaskArray(assignedActiveIssues);
-        const finalTasks = createTaskArray(assignedFinalIssues);
+        const assignedIssues = issuesResponse.json.issues;
   
+        let activeTasks: Array<Task> = []
+        let completedTasks: Array<Task> = []
+
+        assignedIssues.forEach((task:any) => {
+          let taskObj = new Task(
+              task.key, 
+              task.fields["status"]["name"], 
+              task.fields["summary"], 
+              task.fields["issuetype"]["name"], 
+              task.fields["assignee"]["displayName"], 
+              `https://${settings.jiraSettings.baseUrl}/browse/${task.key}`, 
+              task.fields["description"]
+          );
+
+          if (task.fields["resolution"] != null) {
+            completedTasks.push(taskObj);
+          } else {
+            activeTasks.push(taskObj);
+          }
+        });
+        
         // Create markdown files
         await Promise.all(VaultHelper.createTaskNotes(normalizedBaseFolderPath, activeTasks, settings.noteTemplate));
-        await Promise.all(VaultHelper.createTaskNotes(normalizedFinalfolderPath, finalTasks, settings.noteTemplate));
-
-        // Move pre-existing notes that became final state into the Final folder
-        const finalTaskNoteFiles = finalTasks.map(task => VaultHelper.getAbstractFileByTaskId(settings.targetFolder, task.id)).filter((file): file is TFile => !!file);
-        finalTaskNoteFiles.forEach(file => app.vault.rename(file, normalizePath(settings.targetFolder + '/Final/' + file.name)));
+        await Promise.all(VaultHelper.createTaskNotes(normalizedCompletedfolderPath, completedTasks, settings.noteTemplate));
+        
+        // Move pre-existing notes that became resolved state into the Completed folder and vise versa
+        const completedTaskNoteFiles = completedTasks.map(task => VaultHelper.getAbstractFileByTaskId(settings.targetFolder, task.id)).filter((file): file is TFile => !!file);
+        completedTaskNoteFiles.forEach(file => app.vault.rename(file, normalizePath(completedFolder + file.name)));
+        const activeTaskNoteFiles = activeTasks.map(task => VaultHelper.getAbstractFileByTaskId(settings.targetFolder, task.id)).filter((file): file is TFile => !!file);
+        activeTaskNoteFiles.forEach(file => app.vault.rename(file, normalizePath(settings.targetFolder + '/' + file.name)));
 
         if (settings.createKanban) {
-          
+
           // Get the column names from the Jira board
-          const boardConfigResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/board/${settings.jiraSettings.boardId}/configuration` })
+          const boardConfigResponse = await requestUrl(
+            { 
+              method: 'GET', 
+              headers: headers, 
+              url: `${BaseURL}/board/${settings.jiraSettings.boardId}/configuration` 
+            }
+          );
           const columnIds = boardConfigResponse.json.columnConfig.columns.map((column:any) => column.name);
 
-          // Create or replace Kanban board of current sprint
-          await VaultHelper.createKanbanBoard(normalizedBaseFolderPath, activeTasks.concat(finalTasks), columnIds, settings.jiraSettings.boardId);
+          await VaultHelper.createKanbanBoard(normalizedBaseFolderPath, activeTasks.concat(completedTasks), columnIds, settings.jiraSettings.boardId);
         }
       }
     } catch(e) {
@@ -228,28 +258,6 @@ export class JiraClient implements ITfsClient{
           .setValue(plugin.settings.jiraSettings.useSprintName)
             .onChange(async (value) => {
             plugin.settings.jiraSettings.useSprintName = value;
-            await plugin.saveSettings();
-          }));
-    } else if (plugin.settings.jiraSettings.mode == 'kanban') {
-      new Setting(container)
-        .setName('Working Column Names')
-        .setDesc('Comma-separated list of column key names to be used to create notes')
-        .addText(text => text
-          .setPlaceholder('Enter comma-seperated list')
-          .setValue(plugin.settings.jiraSettings.columnsActive)
-          .onChange(async (value) => {
-            plugin.settings.jiraSettings.columnsActive = value;
-            await plugin.saveSettings();
-          }));
-
-      new Setting(container)
-        .setName('Final Column Names')
-        .setDesc('Comma-separated list of column key names to be used to move notes to final')
-        .addText(text => text
-          .setPlaceholder('Enter comma-seperated list')
-          .setValue(plugin.settings.jiraSettings.columnsFinal)
-          .onChange(async (value) => {
-            plugin.settings.jiraSettings.columnsFinal = value;
             await plugin.saveSettings();
           }));
     }

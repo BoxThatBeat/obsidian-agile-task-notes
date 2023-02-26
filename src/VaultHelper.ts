@@ -104,7 +104,7 @@ export class VaultHelper {
       }
     });
 
-      return promisesToCreateNotes;
+    return promisesToCreateNotes;
   }
 
    /**
