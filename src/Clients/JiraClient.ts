@@ -1,5 +1,5 @@
 import AgileTaskNotesPlugin, { AgileTaskNotesPluginSettingTab, AgileTaskNotesSettings } from 'main';
-import { normalizePath, requestUrl, Setting, TFile, RequestUrlResponse } from 'obsidian';
+import { normalizePath, requestUrl, Setting, TFile } from 'obsidian';
 import { Task } from 'src/Task';
 import { VaultHelper } from 'src/VaultHelper'
 import { ITfsClient } from './ITfsClient';
@@ -151,9 +151,9 @@ export class JiraClient implements ITfsClient{
         await Promise.all(VaultHelper.createTaskNotes(normalizedCompletedfolderPath, completedTasks, settings.noteTemplate));
         
         // Move pre-existing notes that became resolved state into the Completed folder and vise versa
-        const completedTaskNoteFiles = completedTasks.map(task => VaultHelper.getAbstractFileByTaskId(settings.targetFolder, task.id)).filter((file): file is TFile => !!file);
+        const completedTaskNoteFiles = completedTasks.map(task => VaultHelper.getFileByTaskId(settings.targetFolder, task.id)).filter((file): file is TFile => !!file);
         completedTaskNoteFiles.forEach(file => app.vault.rename(file, normalizePath(completedFolder + file.name)));
-        const activeTaskNoteFiles = activeTasks.map(task => VaultHelper.getAbstractFileByTaskId(settings.targetFolder, task.id)).filter((file): file is TFile => !!file);
+        const activeTaskNoteFiles = activeTasks.map(task => VaultHelper.getFileByTaskId(settings.targetFolder, task.id)).filter((file): file is TFile => !!file);
         activeTaskNoteFiles.forEach(file => app.vault.rename(file, normalizePath(settings.targetFolder + '/' + file.name)));
 
         if (settings.createKanban) {
@@ -246,7 +246,7 @@ export class JiraClient implements ITfsClient{
           .onChange(async (value) => {
             plugin.settings.jiraSettings.mode = value;
             await plugin.saveSettings();
-            settingsTab.display()
+            settingsTab.display() // Refresh settings to update view
           });
       });
 

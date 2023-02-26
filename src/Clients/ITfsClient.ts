@@ -1,4 +1,4 @@
-import AgileTaskNotesPlugin,  { AgileTaskNotesSettings, AgileTaskNotesPluginSettingTab } from "main";
+import AgileTaskNotesPlugin,  { AgileTaskNotesPluginSettingTab } from "main";
 
 /**
  * An interface describing a TFS backend implementation

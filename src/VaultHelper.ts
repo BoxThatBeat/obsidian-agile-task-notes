@@ -38,46 +38,26 @@ export class VaultHelper {
   }
 
   /**
-   * Will return a filename if the provided id is in the folder of the provided path
-   * @param path - The vault path to search in
-   * @param id - The string to search for in the path folder
-   * @public
-   */
-  public static getFilenameByTaskId(path: string, id: string) : string {
-    const files = app.vault.getMarkdownFiles()
+ * Will return a filehandle if the provided id is in the folder of the provided path
+ * @param path - The vault path to search in
+ * @param id - The string to search for in the path folder
+ * @public
+ */
+  public static getFileByTaskId(path: string, id: string) : TFile | undefined {
+    const files = app.vault.getMarkdownFiles();
 
-    const projectPath = path.slice(0, path.lastIndexOf('/')) // Remove the specific sprint since files can be in old sprints
+    const projectPath = path.slice(0, path.lastIndexOf('/')); // Remove the specific sprint since files can be in old sprints
 
     for (let i = 0; i < files.length; i++) {
 
       let filePath = files[i].path
       if (filePath.startsWith(projectPath) && filePath.contains(id)) {
-        return files[i].basename
+        return files[i];
       }
     }
 
-    return "";
+    return undefined;
   }
-
-    /**
-   * Will return a filehandle if the provided id is in the folder of the provided path
-   * @param path - The vault path to search in
-   * @param id - The string to search for in the path folder
-   * @public
-   */
-    public static getAbstractFileByTaskId(path: string, id: string) : TFile | undefined {
-      const files = app.vault.getMarkdownFiles();
-  
-      const projectPath = path.slice(0, path.lastIndexOf('/')); // Remove the specific sprint since files can be in old sprints
-  
-      for (let i = 0; i < files.length; i++) {
-  
-        let filePath = files[i].path
-        if (filePath.startsWith(projectPath) && filePath.contains(id)) {
-          return files[i];
-        }
-      }
-    }
 
   /**
    * Formats a task filename in this format: "{type} - {id}"
@@ -99,7 +79,7 @@ export class VaultHelper {
 
     let promisesToCreateNotes: Promise<TFile>[] = [];
     tasks.forEach(task => { 
-      if (this.getFilenameByTaskId(path, task.id) === '') {
+      if (this.getFileByTaskId(path, task.id) == undefined) {
         promisesToCreateNotes.push(this.createTaskNote(path, task, template));
       }
     });
@@ -134,8 +114,10 @@ export class VaultHelper {
 
       tasks.forEach((task: Task) => {
         if (task.state === column) {
-          var taskFilename = this.getFilenameByTaskId(path, task.id);
-          boardMD += `- [ ] [[${taskFilename}]] \n ${task.title}\n`
+          var file = this.getFileByTaskId(path, task.id);
+          if (file != undefined) {
+            boardMD += `- [ ] [[${file.basename}]] \n ${task.title}\n`
+          }
         }
       });
 

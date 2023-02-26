@@ -1,5 +1,5 @@
 import AgileTaskNotesPlugin, { AgileTaskNotesPluginSettingTab, AgileTaskNotesSettings } from 'main';
-import { normalizePath, requestUrl, Setting, TFile, Vault } from 'obsidian';
+import { normalizePath, requestUrl, Setting } from 'obsidian';
 import { VaultHelper } from 'src/VaultHelper'
 import { ITfsClient } from './ITfsClient';
 import { Task } from 'src/Task';
