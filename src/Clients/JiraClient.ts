@@ -13,7 +13,7 @@ export interface JiraSettings {
   boardId: string,
   useSprintName: boolean,
   mode: string,
-  columnsFinal: string
+  excludeBacklog: boolean
 }
 
 export const JIRA_DEFAULT_SETTINGS: JiraSettings = {
@@ -25,7 +25,7 @@ export const JIRA_DEFAULT_SETTINGS: JiraSettings = {
   boardId: '',
   useSprintName: true,
   mode: 'sprints',
-  columnsFinal: 'Done,Won\'t do'
+  excludeBacklog: false
 }
 
 export class JiraClient implements ITfsClient{
@@ -40,26 +40,26 @@ export class JiraClient implements ITfsClient{
     }
     if(settings.jiraSettings.authmode == 'basic') {
         const encoded64Key = Buffer.from(`${settings.jiraSettings.email}:${settings.jiraSettings.apiToken}`).toString("base64");
-        headers.Authorization = `Basic ${encoded64Key}`
+        headers.Authorization = `Basic ${encoded64Key}`;
     } else if(settings.jiraSettings.authmode = 'bearer') {
-        headers.Authorization = `Bearer ${settings.jiraSettings.apiToken}`
+        headers.Authorization = `Bearer ${settings.jiraSettings.apiToken}`;
     } 
 
     const BaseURL = `https://${settings.jiraSettings.baseUrl}/rest/agile/1.0`;
 
     try {
       if (settings.jiraSettings.mode == 'sprints') {
-        const sprintsResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/board/${settings.jiraSettings.boardId}/sprint?state=active` })
-        const currentSprintId = sprintsResponse.json.values[0].id 
+        const sprintsResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/board/${settings.jiraSettings.boardId}/sprint?state=active` });
+        const currentSprintId = sprintsResponse.json.values[0].id;
         const currentSprintName = sprintsResponse.json.values[0].name
           .replace(/Sprint/, '')
           .replace(/Board/, '')
           .replace(/^\s+|\s+$/g, '')
           .replace(/[^a-zA-Z0-9 -]/g, '')
           .replace(/\s+/g, '-')
-          .replace(/-+/g, '-')
+          .replace(/-+/g, '-');
       
-        const sprintIdentifier = settings.jiraSettings.useSprintName ? currentSprintName : currentSprintId
+        const sprintIdentifier = settings.jiraSettings.useSprintName ? currentSprintName : currentSprintId;
         const issuesResponse = await requestUrl(
           { 
             method: 'GET', 
@@ -125,24 +125,26 @@ export class JiraClient implements ITfsClient{
 
         const assignedIssues = issuesResponse.json.issues;
   
-        let activeTasks: Array<Task> = []
-        let completedTasks: Array<Task> = []
+        let activeTasks: Array<Task> = [];
+        let completedTasks: Array<Task> = [];
 
         assignedIssues.forEach((task:any) => {
-          let taskObj = new Task(
-              task.key, 
-              task.fields["status"]["name"], 
-              task.fields["summary"], 
-              task.fields["issuetype"]["name"], 
-              task.fields["assignee"]["displayName"], 
-              `https://${settings.jiraSettings.baseUrl}/browse/${task.key}`, 
-              task.fields["description"]
-          );
+          if (!settings.jiraSettings.excludeBacklog || settings.jiraSettings.excludeBacklog && task.fields["status"]["name"] !== 'Backlog') {
+            let taskObj = new Task(
+                task.key, 
+                task.fields["status"]["name"], 
+                task.fields["summary"], 
+                task.fields["issuetype"]["name"], 
+                task.fields["assignee"]["displayName"], 
+                `https://${settings.jiraSettings.baseUrl}/browse/${task.key}`, 
+                task.fields["description"]
+            );
 
-          if (task.fields["resolution"] != null) {
-            completedTasks.push(taskObj);
-          } else {
-            activeTasks.push(taskObj);
+            if (task.fields["resolution"] != null) {
+              completedTasks.push(taskObj);
+            } else {
+              activeTasks.push(taskObj);
+            }
           }
         });
         
@@ -166,7 +168,11 @@ export class JiraClient implements ITfsClient{
               url: `${BaseURL}/board/${settings.jiraSettings.boardId}/configuration` 
             }
           );
-          const columnIds = boardConfigResponse.json.columnConfig.columns.map((column:any) => column.name);
+          var columnIds = boardConfigResponse.json.columnConfig.columns.map((column:any) => column.name);
+
+          if (settings.jiraSettings.excludeBacklog) {
+            columnIds = columnIds.filter((columnName:string) => columnName !== 'Backlog');
+          }
 
           await VaultHelper.createKanbanBoard(normalizedBaseFolderPath, activeTasks.concat(completedTasks), columnIds, settings.jiraSettings.boardId);
         }
@@ -237,6 +243,17 @@ export class JiraClient implements ITfsClient{
         }));
 
     new Setting(container)
+    .setName('Board ID')
+    .setDesc('The ID of your Scrum board (the number in the URL when viewing scrum board in browser) ')
+    .addText(text => text
+      .setPlaceholder('Enter Board ID')
+      .setValue(plugin.settings.jiraSettings.boardId)
+      .onChange(async (value) => {
+        plugin.settings.jiraSettings.boardId = value;
+        await plugin.saveSettings();
+      }));
+
+    new Setting(container)
       .setName('Mode')
       .setDesc('Set the mode corresponding to how you use Jira')
       .addDropdown((dropdown) => {
@@ -250,7 +267,7 @@ export class JiraClient implements ITfsClient{
           });
       });
 
-    if (plugin.settings.jiraSettings.mode == 'sprints') {
+    if (plugin.settings.jiraSettings.mode === 'sprints') {
       new Setting(container)
         .setName('Use Sprint Name (rather than id)')
         .setDesc("Uses the Sprint's human assigned name")
@@ -260,17 +277,16 @@ export class JiraClient implements ITfsClient{
             plugin.settings.jiraSettings.useSprintName = value;
             await plugin.saveSettings();
           }));
-    }
-
-    new Setting(container)
-      .setName('Board ID')
-      .setDesc('The ID of your Scrum board (the number in the URL when viewing scrum board in browser) ')
-      .addText(text => text
-        .setPlaceholder('Enter Board ID')
-        .setValue(plugin.settings.jiraSettings.boardId)
+    } else if (plugin.settings.jiraSettings.mode === 'kanban') {
+      new Setting(container)
+      .setName('Exclude Backlog')
+      .setDesc('Enable to prevent creation of issues from the backlog')
+      .addToggle(toggle => toggle
+        .setValue(plugin.settings.jiraSettings.excludeBacklog)
         .onChange(async (value) => {
-          plugin.settings.jiraSettings.boardId = value;
+          plugin.settings.jiraSettings.excludeBacklog = value
           await plugin.saveSettings();
         }));
+    }
   }
 }
