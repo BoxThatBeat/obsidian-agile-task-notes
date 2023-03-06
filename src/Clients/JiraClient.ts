@@ -60,39 +60,31 @@ export class JiraClient implements ITfsClient{
           .replace(/-+/g, '-');
       
         const sprintIdentifier = settings.jiraSettings.useSprintName ? currentSprintName : currentSprintId;
-        const issuesResponse = await requestUrl(
-          { 
-            method: 'GET', 
-            headers: headers, 
-            url: `${BaseURL}/board/${settings.jiraSettings.boardId}/sprint/${currentSprintId}/issue?jql=assignee=\"${settings.jiraSettings.name}\"&maxResults=1000` 
-          }
-        );
-
-        const assignedIssuesInSprint = issuesResponse.json.issues;
 
         const normalizedFolderPath =  normalizePath(settings.targetFolder + '/sprint-' + sprintIdentifier);
 
         // Ensure folder structure created
         VaultHelper.createFolders(normalizedFolderPath);
 
-      let tasks:Array<Task> = [];
-      let usernames = settings.jiraSettings.usernames.split(',').map((username:string) => username.trim().replace("\'", "\\'"));
+        let tasks:Array<Task> = [];
+        let usernames = settings.jiraSettings.usernames.split(',').map((username:string) => username.trim().replace("\'", "\\'"));
 
-      const issueResponseList = await Promise.all(usernames.map((username: string) => 
-        requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/board/${settings.jiraSettings.boardId}/sprint/${currentSprintId}/issue?jql=assignee=\"${username}\"` })
-      ));
-      
-      issueResponseList.forEach((issueResponse: any) => {
-        issueResponse.json.issues.forEach((issue:any) => {
-          tasks.push(new Task(
-            task.key, 
-            task.fields["status"]["name"], 
-            task.fields["summary"], 
-            task.fields["issuetype"]["name"], 
-            task.fields["assignee"]["displayName"], 
-            `https://${settings.jiraSettings.baseUrl}/browse/${task.key}`, 
-            task.fields["description"])
-          );
+        const issueResponseList = await Promise.all(usernames.map((username: string) => 
+          requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/board/${settings.jiraSettings.boardId}/sprint/${currentSprintId}/issue?jql=assignee=\"${username}\"&maxResults=1000` })
+        ));
+        
+        issueResponseList.forEach((issueResponse: any) => {
+          issueResponse.json.issues.forEach((issue:any) => {
+            tasks.push(new Task(
+              issue.key, 
+              issue.fields["status"]["name"], 
+              issue.fields["summary"], 
+              issue.fields["issuetype"]["name"], 
+              issue.fields["assignee"]["displayName"], 
+              `https://${settings.jiraSettings.baseUrl}/browse/${issue.key}`, 
+              issue.fields["description"])
+            );
+          });
         });
 
         // Create markdown files based on remote task in current sprint
@@ -126,7 +118,7 @@ export class JiraClient implements ITfsClient{
           { 
             method: 'GET',
             headers: headers,
-            url: `${BaseURL}/board/${settings.jiraSettings.boardId}/issue?jql=assignee=\"${settings.jiraSettings.name}\"&maxResults=1000`
+            url: `${BaseURL}/board/${settings.jiraSettings.boardId}/issue?jql=assignee=\"${settings.jiraSettings.usernames}\"&maxResults=1000`
           }
         );
 
