@@ -40,24 +40,24 @@ export default class AgileTaskNotesPlugin extends Plugin {
     await this.loadSettings();
 
 		// This creates an icon in the left ribbon for updating boards.
-		this.addRibbonIcon('dice', 'Update Current Sprint', () => {
-			this.tfsClientImplementations[this.settings.selectedTfsClient].updateCurrentSprint(this.settings);
-      new Notice('Updated current sprint successfully!');
+		this.addRibbonIcon('dice', 'Update TFS Tasks', () => {
+			this.tfsClientImplementations[this.settings.selectedTfsClient].update(this.settings);
+      new Notice('Updated current tasks successfully!');
 		});
 
 		this.addCommand({
-			id: 'aupdate-current-sprint',
-			name: 'Update Current Sprint',
+			id: 'update-tfs-tasks',
+			name: 'Update TFS Tasks',
 			callback: () => {
-				this.tfsClientImplementations[this.settings.selectedTfsClient].updateCurrentSprint(this.settings);
-        new Notice('Updated current sprint successfully!');
+				this.tfsClientImplementations[this.settings.selectedTfsClient].update(this.settings);
+        new Notice('Updated current tasks successfully!');
 			}
 		});
 
 		this.addSettingTab(new AgileTaskNotesPluginSettingTab(this.app, this));
 
     if (this.settings.intervalMinutes > 0) {
-      this.registerInterval(window.setInterval(() => this.tfsClientImplementations[this.settings.selectedTfsClient].updateCurrentSprint(this.settings), this.settings.intervalMinutes * 60000));
+      this.registerInterval(window.setInterval(() => this.tfsClientImplementations[this.settings.selectedTfsClient].update(this.settings), this.settings.intervalMinutes * 60000));
     }
 	}
 
@@ -74,7 +74,7 @@ export default class AgileTaskNotesPlugin extends Plugin {
 	}
 }
 
-class AgileTaskNotesPluginSettingTab extends PluginSettingTab {
+export class AgileTaskNotesPluginSettingTab extends PluginSettingTab {
 	plugin: AgileTaskNotesPlugin;
 
 	constructor(app: App, plugin: AgileTaskNotesPlugin) {
@@ -102,7 +102,7 @@ class AgileTaskNotesPluginSettingTab extends PluginSettingTab {
           });
       });
 
-    plugin.tfsClientImplementations[plugin.settings.selectedTfsClient].setupSettings(containerEl, plugin);
+    plugin.tfsClientImplementations[plugin.settings.selectedTfsClient].setupSettings(containerEl, plugin, this);
 
     containerEl.createEl('h2', {text: 'Vault Settings'});
 
