@@ -69,8 +69,14 @@ export class JiraClient implements ITfsClient{
         let tasks:Array<Task> = [];
         let usernames = settings.jiraSettings.usernames.split(',').map((username:string) => username.trim().replace("\'", "\\'"));
 
+        // Get the tasks of each user requested
         const issueResponseList = await Promise.all(usernames.map((username: string) => 
-          requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/board/${settings.jiraSettings.boardId}/sprint/${currentSprintId}/issue?jql=assignee=\"${username}\"&maxResults=1000` })
+          requestUrl(
+            { 
+              method: 'GET', 
+              headers: headers, 
+              url: `${BaseURL}/board/${settings.jiraSettings.boardId}/sprint/${currentSprintId}/issue?jql=assignee=\"${username}\"&maxResults=1000` 
+            })
         ));
         
         issueResponseList.forEach((issueResponse: any) => {
@@ -114,37 +120,41 @@ export class JiraClient implements ITfsClient{
         // Ensure folder structures created
         VaultHelper.createFoldersFromList([normalizedBaseFolderPath, normalizedCompletedfolderPath]);
 
-        const issuesResponse = await requestUrl(
+        let activeTasks: Array<Task> = [];
+        let completedTasks: Array<Task> = [];
+        let usernames = settings.jiraSettings.usernames.split(',').map((username:string) => username.trim().replace("\'", "\\'"));
+
+        // Get the tasks of each user requested
+        const issueResponseList = await Promise.all(usernames.map((username: string) => 
+        requestUrl(
           { 
             method: 'GET',
             headers: headers,
-            url: `${BaseURL}/board/${settings.jiraSettings.boardId}/issue?jql=assignee=\"${settings.jiraSettings.usernames}\"&maxResults=1000`
-          }
-        );
+            url: `${BaseURL}/board/${settings.jiraSettings.boardId}/issue?jql=assignee=\"${username}\"&maxResults=1000`
+          })
+        ));
+        
+        issueResponseList.forEach((issueResponse: any) => {
+          issueResponse.json.issues.forEach((issue:any) => {
 
-        const assignedIssues = issuesResponse.json.issues;
+            if (!settings.jiraSettings.excludeBacklog || settings.jiraSettings.excludeBacklog && issue.fields["status"]["name"] !== 'Backlog') {
+              let taskObj = new Task(
+                  issue.key, 
+                  issue.fields["status"]["name"], 
+                  issue.fields["summary"], 
+                  issue.fields["issuetype"]["name"], 
+                  issue.fields["assignee"]["displayName"], 
+                  `https://${settings.jiraSettings.baseUrl}/browse/${issue.key}`, 
+                  issue.fields["description"]
+              );
   
-        let activeTasks: Array<Task> = [];
-        let completedTasks: Array<Task> = [];
-
-        assignedIssues.forEach((task:any) => {
-          if (!settings.jiraSettings.excludeBacklog || settings.jiraSettings.excludeBacklog && task.fields["status"]["name"] !== 'Backlog') {
-            let taskObj = new Task(
-                task.key, 
-                task.fields["status"]["name"], 
-                task.fields["summary"], 
-                task.fields["issuetype"]["name"], 
-                task.fields["assignee"]["displayName"], 
-                `https://${settings.jiraSettings.baseUrl}/browse/${task.key}`, 
-                task.fields["description"]
-            );
-
-            if (task.fields["resolution"] != null) {
-              completedTasks.push(taskObj);
-            } else {
-              activeTasks.push(taskObj);
+              if (issue.fields["resolution"] != null) {
+                completedTasks.push(taskObj);
+              } else {
+                activeTasks.push(taskObj);
+              }
             }
-          }
+          });
         });
         
         // Create markdown files
