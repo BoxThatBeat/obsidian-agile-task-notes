@@ -29,25 +29,34 @@ export class VaultHelper {
   }
 
   /**
-   * Will return a filename if the provided id is in the folder of the provided path
-   * @param path - The vault path to search in
-   * @param id - The string to search for in the path folder
+   * Creates all folders for all given paths if they are non-existent
+   * @param paths - The list of paths of folders to creates
    * @public
    */
-  public static getFilenameByTaskId(path: string, id: string) : string {
-    const files = app.vault.getMarkdownFiles()
+  public static createFoldersFromList(paths: string[]): void {
+    paths.forEach(path => this.createFolders(path));
+  }
 
-    const projectPath = path.slice(0, path.lastIndexOf('/')) // Remove the specific sprint since files can be in old sprints
+  /**
+ * Will return a filehandle if the provided id is in the folder of the provided path
+ * @param path - The vault path to search in
+ * @param id - The string to search for in the path folder
+ * @public
+ */
+  public static getFileByTaskId(path: string, id: string) : TFile | undefined {
+    const files = app.vault.getMarkdownFiles();
+
+    const projectPath = path.slice(0, path.lastIndexOf('/')); // Remove the specific sprint since files can be in old sprints
 
     for (let i = 0; i < files.length; i++) {
 
       let filePath = files[i].path
       if (filePath.startsWith(projectPath) && filePath.contains(id)) {
-        return files[i].basename
+        return files[i];
       }
     }
 
-    return "";
+    return undefined;
   }
 
   /**
@@ -70,12 +79,12 @@ export class VaultHelper {
 
     let promisesToCreateNotes: Promise<TFile>[] = [];
     tasks.forEach(task => { 
-      if (this.getFilenameByTaskId(path, task.id) === '') {
+      if (this.getFileByTaskId(path, task.id) == undefined) {
         promisesToCreateNotes.push(this.createTaskNote(path, task, template));
       }
     });
 
-      return promisesToCreateNotes;
+    return promisesToCreateNotes;
   }
 
    /**
@@ -83,11 +92,11 @@ export class VaultHelper {
    * @param path - The path to create each task at
    * @param tasks - An array of Tasks
    * @param columns - An array of column names to match state of the tasks with
-   * @param sprintName - The name of the current sprint
+   * @param prefix - The prefix to add to the kanban board name
    * @public
    */
-  public static createKanbanBoard(path: string, tasks: Array<Task>, columns: Array<string>, sprintName: string): Promise<TFile> {
-    const filename = `${sprintName}-Board`;
+  public static createKanbanBoard(path: string, tasks: Array<Task>, columns: Array<string>, prefix: string): Promise<TFile> {
+    const filename = `${prefix}-Board`;
     const filepath = path + `/${filename}.md`;
     const existingBoard = app.vault.getAbstractFileByPath(filepath);
 
@@ -105,8 +114,10 @@ export class VaultHelper {
 
       tasks.forEach((task: Task) => {
         if (task.state === column) {
-          var taskFilename = this.getFilenameByTaskId(path, task.id);
-          boardMD += `- [ ] [[${taskFilename}]] \n ${task.title}\n`
+          var file = this.getFileByTaskId(path, task.id);
+          if (file != undefined) {
+            boardMD += `- [ ] [[${file.basename}]] \n ${task.title}\n`
+          }
         }
       });
 

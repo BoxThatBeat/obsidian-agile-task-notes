@@ -1,4 +1,4 @@
-import AgileTaskNotesPlugin from "main";
+import AgileTaskNotesPlugin,  { AgileTaskNotesPluginSettingTab } from "main";
 
 /**
  * An interface describing a TFS backend implementation
@@ -16,7 +16,7 @@ export interface ITfsClient {
    * @param settings - The plugin settings
    * @public
    */
-  updateCurrentSprint(settings: any): Promise<void>;
+  update(settings: any): Promise<void>;
 
   /**
    * Creates all the required UI elements for this client's settings
@@ -24,5 +24,5 @@ export interface ITfsClient {
    * @param plugin - The plugin itself
    * @public
    */
-  setupSettings(container: HTMLElement, plugin: AgileTaskNotesPlugin): any;
+  setupSettings(container: HTMLElement, plugin: AgileTaskNotesPlugin, settingsTab: AgileTaskNotesPluginSettingTab): any;
 }

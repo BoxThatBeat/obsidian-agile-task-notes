@@ -1,5 +1,5 @@
-import AgileTaskNotesPlugin, { AgileTaskNotesSettings } from 'main';
-import { normalizePath, requestUrl, Setting, TFile, Vault } from 'obsidian';
+import AgileTaskNotesPlugin, { AgileTaskNotesPluginSettingTab, AgileTaskNotesSettings } from 'main';
+import { normalizePath, requestUrl, Setting } from 'obsidian';
 import { VaultHelper } from 'src/VaultHelper'
 import { ITfsClient } from './ITfsClient';
 import { Task } from 'src/Task';
@@ -30,7 +30,7 @@ export class AzureDevopsClient implements ITfsClient{
   
   clientName: string = 'AzureDevops';
 
-  public async updateCurrentSprint(settings: AgileTaskNotesSettings): Promise<void> {
+  public async update(settings: AgileTaskNotesSettings): Promise<void> {
 
     const encoded64PAT = Buffer.from(`:${settings.azureDevopsSettings.accessToken}`).toString("base64");
 
@@ -82,7 +82,7 @@ export class AzureDevopsClient implements ITfsClient{
     }
   }
 
-  public setupSettings(container: HTMLElement, plugin: AgileTaskNotesPlugin): any {
+  public setupSettings(container: HTMLElement, plugin: AgileTaskNotesPlugin, settingsTab: AgileTaskNotesPluginSettingTab): any {
     container.createEl('h2', {text: 'AzureDevops Remote Repo Settings'});
 
 		new Setting(container)
