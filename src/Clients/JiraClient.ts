@@ -108,7 +108,7 @@ export class JiraClient implements ITfsClient{
           );
           const columnIds = boardConfigResponse.json.columnConfig.columns.map((column:any) => column.name);
 
-          await VaultHelper.createKanbanBoard(normalizedFolderPath, tasks, columnIds, sprintIdentifier);
+          await VaultHelper.createKanbanBoard(normalizedFolderPath, tasks, columnIds, sprintIdentifier, settings.teamLeaderMode);
         }
 
       } else if(settings.jiraSettings.mode == 'kanban') {
@@ -183,7 +183,7 @@ export class JiraClient implements ITfsClient{
             columnIds = columnIds.filter((columnName:string) => columnName !== 'Backlog');
           }
 
-          await VaultHelper.createKanbanBoard(normalizedBaseFolderPath, activeTasks.concat(completedTasks), columnIds, settings.jiraSettings.boardId);
+          await VaultHelper.createKanbanBoard(normalizedBaseFolderPath, activeTasks.concat(completedTasks), columnIds, settings.jiraSettings.boardId, settings.teamLeaderMode);
         }
       }
     } catch(e) {

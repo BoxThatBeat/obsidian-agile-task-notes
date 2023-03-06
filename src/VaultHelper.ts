@@ -95,7 +95,7 @@ export class VaultHelper {
    * @param prefix - The prefix to add to the kanban board name
    * @public
    */
-  public static createKanbanBoard(path: string, tasks: Array<Task>, columns: Array<string>, prefix: string): Promise<TFile> {
+  public static createKanbanBoard(path: string, tasks: Array<Task>, columns: Array<string>, prefix: string, teamLeaderMode: boolean): Promise<TFile> {
     const filename = `${prefix}-Board`;
     const filepath = path + `/${filename}.md`;
     const existingBoard = app.vault.getAbstractFileByPath(filepath);
@@ -116,7 +116,13 @@ export class VaultHelper {
         if (task.state === column) {
           var file = this.getFileByTaskId(path, task.id);
           if (file != undefined) {
-            boardMD += `- [ ] [[${file.basename}]] \n ${task.title}\n`
+
+            if (teamLeaderMode) {
+              boardMD += `- [ ] [[${file.basename}]] \n ${task.assignedTo} \n ${task.title}\n`
+            } else {
+              boardMD += `- [ ] [[${file.basename}]] \n ${task.title}\n`
+            }
+            
           }
         }
       });

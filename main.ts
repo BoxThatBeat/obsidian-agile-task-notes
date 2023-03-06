@@ -9,6 +9,7 @@ export interface AgileTaskNotesSettings {
   noteTemplate: string,
   intervalMinutes: number,
   createKanban: boolean,
+  teamLeaderMode: boolean,
 	azureDevopsSettings: AzureDevopsSettings,
   jiraSettings: JiraSettings
 }
@@ -19,6 +20,7 @@ const DEFAULT_SETTINGS: AgileTaskNotesSettings = {
   noteTemplate: '# {{TASK_TITLE}}\n#{{TASK_TYPE}}\n\nid: {{TASK_ID}}\nstate: {{TASK_STATE}}\nAssignedTo: {{TASK_ASSIGNEDTO}}\n\nLink: {{TASK_LINK}}\n\n{{TASK_DESCRIPTION}}\n\n#todo:\n- [ ] Create todo list\n- [ ] \n\n## Notes:\n',
   intervalMinutes: 0,
   createKanban: true,
+  teamLeaderMode: false,
   azureDevopsSettings: AZURE_DEVOPS_DEFAULT_SETTINGS,
   jiraSettings: JIRA_DEFAULT_SETTINGS
 }
@@ -101,6 +103,16 @@ export class AgileTaskNotesPluginSettingTab extends PluginSettingTab {
             this.display();
           });
       });
+
+    new Setting(containerEl)
+    .setName('Team Leader Mode')
+    .setDesc('Pulls tasks of entire team and shows usernames in generated Kanban board. (ignores username list)')
+    .addToggle(toggle => toggle
+      .setValue(plugin.settings.teamLeaderMode)
+      .onChange(async (value) => {
+        plugin.settings.teamLeaderMode = value
+        await plugin.saveSettings();
+      }));
 
     plugin.tfsClientImplementations[plugin.settings.selectedTfsClient].setupSettings(containerEl, plugin, this);
 
