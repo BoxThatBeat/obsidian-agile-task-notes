@@ -24,7 +24,8 @@ export const AZURE_DEVOPS_DEFAULT_SETTINGS: AzureDevopsSettings = {
   columns: 'Pending,In Progress,In Merge,In Verification,Closed'
 }
 
-const TASKS_QUERY: string = '{"query": "Select [System.Id], [System.Title], [System.State] From WorkItems Where [Assigned to] = \\"{0}\\" AND [System.IterationPath] UNDER \\"{1}\\""}' // username, iteration path
+const TASKS_QUERY: string = '{"query": "Select [System.Id], [System.Title], [System.State] From WorkItems Where {0} AND [System.IterationPath] UNDER \\"{1}\\""}' // usernames, iteration path
+const USER_OPERAND: string = '[Assigned to] = \\"{0}\\"'
 
 export class AzureDevopsClient implements ITfsClient{
   
@@ -41,15 +42,25 @@ export class AzureDevopsClient implements ITfsClient{
 
     const BaseURL = `https://${settings.azureDevopsSettings.instance}/${settings.azureDevopsSettings.collection}/${settings.azureDevopsSettings.project}`;
 
-    const username = settings.azureDevopsSettings.usernames.replace("\'", "\\'");
+    const usernames = settings.azureDevopsSettings.usernames.split(',').map((username:string) => username.trim().replace("\'", "\\'"));
 
     try {
       const iterationResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/${settings.azureDevopsSettings.team}/_apis/work/teamsettings/iterations?$timeframe=current&api-version=6.0` });
       const currentSprint = iterationResponse.json.value[0];
       const normalizeIterationPath = currentSprint.path.normalize().replace(/\\/g, '\\\\');
       
-      // Get task assigned to username in current iteration
-      const tasksReponse = await requestUrl({method: 'POST', body: TASKS_QUERY.format(username, normalizeIterationPath), headers: headers, url: `${BaseURL}/${settings.azureDevopsSettings.team}/_apis/wit/wiql?api-version=6.0` });
+      // Put query together dynamically based on number of usernames requested
+      let multiUserOperands = ''
+      for (let i = 0; i < usernames.length; i++) {
+        multiUserOperands += USER_OPERAND.format(usernames[i])
+
+        if (i < usernames.length - 1) {
+          multiUserOperands += ' OR '
+        }
+      }
+      // Get task assigned to each requested username in the current iteration
+      console.log(TASKS_QUERY.format(multiUserOperands, normalizeIterationPath))
+      const tasksReponse = await requestUrl({method: 'POST', body: TASKS_QUERY.format(multiUserOperands, normalizeIterationPath), headers: headers, url: `${BaseURL}/${settings.azureDevopsSettings.team}/_apis/wit/wiql?api-version=6.0` });
       const userAssignedTaskIds = tasksReponse.json.workItems;
 
       const normalizedFolderPath =  normalizePath(settings.targetFolder + '/' + currentSprint.path);
