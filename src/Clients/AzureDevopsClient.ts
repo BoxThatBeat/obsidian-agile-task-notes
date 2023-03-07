@@ -9,7 +9,7 @@ export interface AzureDevopsSettings {
   collection: string,
   project: string,
   team: string,
-  username: string,
+  usernames: string,
   accessToken: string,
   columns: string
 }
@@ -19,12 +19,13 @@ export const AZURE_DEVOPS_DEFAULT_SETTINGS: AzureDevopsSettings = {
   collection: '',
   project: '',
   team: '',
-  username: '',
+  usernames: '',
   accessToken: '',
   columns: 'Pending,In Progress,In Merge,In Verification,Closed'
 }
 
-const TASKS_QUERY: string = '{"query": "Select [System.Id], [System.Title], [System.State] From WorkItems Where [Assigned to] = \\"{0}\\" AND [System.IterationPath] UNDER \\"{1}\\""}' // username, iteration path
+const TASKS_QUERY: string = '{"query": "Select [System.Id], [System.Title], [System.State] From WorkItems Where [System.IterationPath] UNDER \\"{0}\\"{1}"}' // iteration path, other(usernames)
+const USER_OPERAND: string = '[Assigned to] = \\"{0}\\"'
 
 export class AzureDevopsClient implements ITfsClient{
   
@@ -41,28 +42,83 @@ export class AzureDevopsClient implements ITfsClient{
 
     const BaseURL = `https://${settings.azureDevopsSettings.instance}/${settings.azureDevopsSettings.collection}/${settings.azureDevopsSettings.project}`;
 
-    const username = settings.azureDevopsSettings.username.replace("\'", "\\'");
-
     try {
-      const iterationResponse = await requestUrl({ method: 'GET', headers: headers, url: `${BaseURL}/${settings.azureDevopsSettings.team}/_apis/work/teamsettings/iterations?$timeframe=current&api-version=6.0` });
+      const iterationResponse = await requestUrl(
+        { 
+          method: 'GET', 
+          headers: headers, 
+          url: `${BaseURL}/${settings.azureDevopsSettings.team}/_apis/work/teamsettings/iterations?$timeframe=current&api-version=6.0` 
+        }
+      );
       const currentSprint = iterationResponse.json.value[0];
       const normalizeIterationPath = currentSprint.path.normalize().replace(/\\/g, '\\\\');
       
-      // Get task assigned to username in current iteration
-      const tasksReponse = await requestUrl({method: 'POST', body: TASKS_QUERY.format(username, normalizeIterationPath), headers: headers, url: `${BaseURL}/${settings.azureDevopsSettings.team}/_apis/wit/wiql?api-version=6.0` });
-      const userAssignedTaskIds = tasksReponse.json.workItems;
+      var taskIds:any;
+
+      if (settings.teamLeaderMode) {
+
+        console.log(TASKS_QUERY.format(normalizeIterationPath, ''));
+        const tasksReponse = await requestUrl(
+          {
+            method: 'POST', 
+            body: TASKS_QUERY.format(normalizeIterationPath, ''), 
+            headers: headers, 
+            url: `${BaseURL}/${settings.azureDevopsSettings.team}/_apis/wit/wiql?api-version=6.0` 
+          }
+        );
+        
+        taskIds = tasksReponse.json.workItems;
+
+      } else { 
+        const usernames = settings.azureDevopsSettings.usernames.split(',').map((username:string) => username.trim().replace("\'", "\\'"));
+
+        // Put query together dynamically based on number of usernames requested
+        let multiUserOperands = ' AND ';
+        for (let i = 0; i < usernames.length; i++) {
+          multiUserOperands += USER_OPERAND.format(usernames[i]);
+
+          if (i < usernames.length - 1) {
+            multiUserOperands += ' OR ';
+          }
+        }
+
+        console.log(TASKS_QUERY.format(normalizeIterationPath, multiUserOperands));
+
+        const tasksReponse = await requestUrl(
+          {
+            method: 'POST', 
+            body: TASKS_QUERY.format(normalizeIterationPath, multiUserOperands), 
+            headers: headers, 
+            url: `${BaseURL}/${settings.azureDevopsSettings.team}/_apis/wit/wiql?api-version=6.0` 
+          }
+        );
+        
+        taskIds = tasksReponse.json.workItems;
+      }
 
       const normalizedFolderPath =  normalizePath(settings.targetFolder + '/' + currentSprint.path);
 
       // Ensure folder structure created
       VaultHelper.createFolders(normalizedFolderPath);
 
-      // Get user's assigned tasks
-      const userAssignedTasks = await Promise.all(userAssignedTaskIds.map((task: any) => requestUrl({ method: 'GET', headers: headers, url: task.url}).then((r) => r.json)));
+      // Get assigned tasks
+      const assignedTasks = await Promise.all(taskIds.map((task: any) => requestUrl(
+        { 
+          method: 'GET', 
+          headers: headers, 
+          url: task.url
+        }).then((r) => r.json)));
       
       let tasks:Array<Task> = [];
-      userAssignedTasks.forEach((task:any) => {
-        tasks.push(new Task(task.id, task.fields["System.State"], task.fields["System.Title"], task.fields["System.WorkItemType"], task.fields["System.AssignedTo"]["displayName"], `https://${settings.azureDevopsSettings.instance}/${settings.azureDevopsSettings.collection}/${settings.azureDevopsSettings.project}/_workitems/edit/${task.id}`, task.fields["System.Description"]));
+      assignedTasks.forEach((task:any) => {
+        tasks.push(new Task(
+          task.id, 
+          task.fields["System.State"], 
+          task.fields["System.Title"], 
+          task.fields["System.WorkItemType"], 
+          task.fields["System.AssignedTo"]["displayName"], 
+          `https://${settings.azureDevopsSettings.instance}/${settings.azureDevopsSettings.collection}/${settings.azureDevopsSettings.project}/_workitems/edit/${task.id}`, 
+          task.fields["System.Description"]));
       });
 
       // Create markdown files based on remote task in current sprint
@@ -73,7 +129,7 @@ export class AzureDevopsClient implements ITfsClient{
         
         // Create or replace Kanban board of current sprint
         const columnIds = settings.azureDevopsSettings.columns.split(',').map((columnName:string) => columnName.trim());
-        await VaultHelper.createKanbanBoard(normalizedFolderPath, tasks, columnIds, currentSprint.name)
+        await VaultHelper.createKanbanBoard(normalizedFolderPath, tasks, columnIds, currentSprint.name, settings.teamLeaderMode)
           .catch(e => VaultHelper.logError(e));
       }
     
@@ -130,13 +186,13 @@ export class AzureDevopsClient implements ITfsClient{
       }));
 
     new Setting(container)
-    .setName('Username')
-    .setDesc('Your AzureDevops username (display name)')
+    .setName('Usernames')
+    .setDesc('A comma-separated list of usernames you want the tasks of. Simply put your username if you only need your own.')
     .addText(text => text
-      .setPlaceholder('Enter your name')
-      .setValue(plugin.settings.azureDevopsSettings.username)
+      .setPlaceholder('Enter usernames')
+      .setValue(plugin.settings.azureDevopsSettings.usernames)
       .onChange(async (value) => {
-        plugin.settings.azureDevopsSettings.username = value;
+        plugin.settings.azureDevopsSettings.usernames = value;
         await plugin.saveSettings();
       }));
 
@@ -155,7 +211,7 @@ export class AzureDevopsClient implements ITfsClient{
     .setName('Column Names')
     .setDesc('Line-separated list of column key names from your team sprint board to be used in Kanban board')
     .addText(text => text
-      .setPlaceholder('Enter comma-seperated list')
+      .setPlaceholder('Enter comma-separated list')
       .setValue(plugin.settings.azureDevopsSettings.columns)
       .onChange(async (value) => {
         plugin.settings.azureDevopsSettings.columns = value;
