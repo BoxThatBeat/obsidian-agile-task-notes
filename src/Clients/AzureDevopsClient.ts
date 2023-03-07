@@ -42,8 +42,6 @@ export class AzureDevopsClient implements ITfsClient{
 
     const BaseURL = `https://${settings.azureDevopsSettings.instance}/${settings.azureDevopsSettings.collection}/${settings.azureDevopsSettings.project}`;
 
-    const usernames = settings.azureDevopsSettings.usernames.split(',').map((username:string) => username.trim().replace("\'", "\\'"));
-
     try {
       const iterationResponse = await requestUrl(
         { 
@@ -72,6 +70,7 @@ export class AzureDevopsClient implements ITfsClient{
         taskIds = tasksReponse.json.workItems;
 
       } else { 
+        const usernames = settings.azureDevopsSettings.usernames.split(',').map((username:string) => username.trim().replace("\'", "\\'"));
 
         // Put query together dynamically based on number of usernames requested
         let multiUserOperands = ' AND ';

@@ -1,5 +1,5 @@
 import AgileTaskNotesPlugin, { AgileTaskNotesPluginSettingTab, AgileTaskNotesSettings } from 'main';
-import { normalizePath, requestUrl, Setting, TFile } from 'obsidian';
+import { normalizePath, requestUrl, RequestUrlResponse, Setting, TFile } from 'obsidian';
 import { Task } from 'src/Task';
 import { VaultHelper } from 'src/VaultHelper'
 import { ITfsClient } from './ITfsClient';
@@ -67,10 +67,21 @@ export class JiraClient implements ITfsClient{
         VaultHelper.createFolders(normalizedFolderPath);
 
         let tasks:Array<Task> = [];
-        let usernames = settings.jiraSettings.usernames.split(',').map((username:string) => username.trim().replace("\'", "\\'"));
+        let issueResponseList: Array<RequestUrlResponse> = [];
+        
+        if (settings.teamLeaderMode) {
+          issueResponseList[0] = await requestUrl(
+            { 
+              method: 'GET',
+              headers: headers,
+              url: `${BaseURL}/board/${settings.jiraSettings.boardId}/sprint/${currentSprintId}/issue?maxResults=1000`
+            }
+          );
 
-        // Get the tasks of each user requested
-        const issueResponseList = await Promise.all(usernames.map((username: string) => 
+        } else {
+          let usernames = settings.jiraSettings.usernames.split(',').map((username:string) => username.trim().replace("\'", "\\'"));
+
+          issueResponseList = await Promise.all(usernames.map((username: string) => 
           requestUrl(
             { 
               method: 'GET', 
@@ -78,6 +89,7 @@ export class JiraClient implements ITfsClient{
               url: `${BaseURL}/board/${settings.jiraSettings.boardId}/sprint/${currentSprintId}/issue?jql=assignee=\"${username}\"&maxResults=1000` 
             })
         ));
+        }
         
         issueResponseList.forEach((issueResponse: any) => {
           issueResponse.json.issues.forEach((issue:any) => {
@@ -122,19 +134,31 @@ export class JiraClient implements ITfsClient{
 
         let activeTasks: Array<Task> = [];
         let completedTasks: Array<Task> = [];
-        let usernames = settings.jiraSettings.usernames.split(',').map((username:string) => username.trim().replace("\'", "\\'"));
+        let issueResponseList: Array<RequestUrlResponse> = [];
 
-        // Get the tasks of each user requested
-        const issueResponseList = await Promise.all(usernames.map((username: string) => 
-        requestUrl(
-          { 
-            method: 'GET',
-            headers: headers,
-            url: `${BaseURL}/board/${settings.jiraSettings.boardId}/issue?jql=assignee=\"${username}\"&maxResults=1000`
-          })
-        ));
+        if (settings.teamLeaderMode) {
+          issueResponseList[0] = await requestUrl(
+            { 
+              method: 'GET',
+              headers: headers,
+              url: `${BaseURL}/board/${settings.jiraSettings.boardId}/issue?maxResults=1000`
+            }
+          );
+          
+        } else {
+          let usernames = settings.jiraSettings.usernames.split(',').map((username:string) => username.trim().replace("\'", "\\'"));
+          issueResponseList = await Promise.all(usernames.map((username: string) => 
+          requestUrl(
+            { 
+              method: 'GET',
+              headers: headers,
+              url: `${BaseURL}/board/${settings.jiraSettings.boardId}/issue?jql=assignee=\"${username}\"&maxResults=1000`
+            })
+          ));  
+        }
         
-        issueResponseList.forEach((issueResponse: any) => {
+        
+        issueResponseList.forEach((issueResponse: RequestUrlResponse) => {
           issueResponse.json.issues.forEach((issue:any) => {
 
             if (!settings.jiraSettings.excludeBacklog || settings.jiraSettings.excludeBacklog && issue.fields["status"]["name"] !== 'Backlog') {
