@@ -93,12 +93,19 @@ export class JiraClient implements ITfsClient{
         
         issueResponseList.forEach((issueResponse: any) => {
           issueResponse.json.issues.forEach((issue:any) => {
+
+            let assigneeName = 'Unassigned'
+            let assignee = issue.fields["assignee"];
+            if (assignee !== null) {
+              assigneeName = assignee["displayName"];
+            }
+
             tasks.push(new Task(
               issue.key, 
               issue.fields["status"]["name"], 
               issue.fields["summary"], 
               issue.fields["issuetype"]["name"], 
-              issue.fields["assignee"]["displayName"], 
+              assigneeName, 
               `https://${settings.jiraSettings.baseUrl}/browse/${issue.key}`, 
               issue.fields["description"])
             );
@@ -162,12 +169,19 @@ export class JiraClient implements ITfsClient{
           issueResponse.json.issues.forEach((issue:any) => {
 
             if (!settings.jiraSettings.excludeBacklog || settings.jiraSettings.excludeBacklog && issue.fields["status"]["name"] !== 'Backlog') {
+              
+              let assigneeName = 'Unassigned'
+              let assignee = issue.fields["assignee"];
+              if (assignee !== null) {
+                assigneeName = assignee["displayName"];
+              }
+              
               let taskObj = new Task(
                   issue.key, 
                   issue.fields["status"]["name"], 
                   issue.fields["summary"], 
                   issue.fields["issuetype"]["name"], 
-                  issue.fields["assignee"]["displayName"], 
+                  assigneeName, 
                   `https://${settings.jiraSettings.baseUrl}/browse/${issue.key}`, 
                   issue.fields["description"]
               );
