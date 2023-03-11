@@ -1,7 +1,7 @@
 {
 	"id": "obsidian-agile-task-notes",
 	"name": "Agile Task Notes",
-	"version": "1.2.0",
+	"version": "1.3.0",
 	"minAppVersion": "0.12.0",
 	"description": "Import your tasks from your TFS (Azure or Jira) to take notes on them and make todo-lists!",
 	"author": "BoxThatBeat",
