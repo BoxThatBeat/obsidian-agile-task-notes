@@ -1,7 +1,7 @@
 import { Notice, TFile } from 'obsidian';
 import { Task } from './Task';
 
-export class VaultHelper { 
+export class VaultHelper {
 
   private static BOARD_TEMPLATE_START: string = "---\n\nkanban-plugin: basic\n\n---\n\n";
   private static BOARD_TEMPLATE_END: string = "\n%% kanban:settings\n\`\`\`\n{\"kanban-plugin\":\"basic\"}\n\`\`\`%%\"";
@@ -78,7 +78,7 @@ export class VaultHelper {
   public static createTaskNotes(path: string, tasks: Array<Task>, template: string): Promise<TFile>[] {
 
     let promisesToCreateNotes: Promise<TFile>[] = [];
-    tasks.forEach(task => { 
+    tasks.forEach(task => {
       if (this.getFileByTaskId(path, task.id) == undefined) {
         promisesToCreateNotes.push(this.createTaskNote(path, task, template));
       }
@@ -95,17 +95,12 @@ export class VaultHelper {
    * @param prefix - The prefix to add to the kanban board name
    * @public
    */
-  public static createKanbanBoard(path: string, tasks: Array<Task>, columns: Array<string>, prefix: string, teamLeaderMode: boolean): Promise<TFile> {
+  public static createKanbanBoard(path: string, tasks: Array<Task>, columns: Array<string>, prefix: string, teamLeaderMode: boolean): Promise<void> {
     const filename = `${prefix}-Board`;
     const filepath = path + `/${filename}.md`;
-    const existingBoard = app.vault.getAbstractFileByPath(filepath);
-
-    if (existingBoard != null) {
-      app.vault.delete(existingBoard, true);
-    }
 
     let boardMD = this.BOARD_TEMPLATE_START;
-    
+
     // Create Kanban board with specified columns matching the state of each task
     columns.forEach((column: string) => {
       boardMD += "## ";
@@ -122,7 +117,7 @@ export class VaultHelper {
             } else {
               boardMD += `- [ ] [[${file.basename}]] \n ${task.title}\n`
             }
-            
+
           }
         }
       });
@@ -132,7 +127,7 @@ export class VaultHelper {
 
     boardMD += this.BOARD_TEMPLATE_END;
 
-    return app.vault.create(filepath, boardMD);
+    return app.vault.adapter.write(filepath, boardMD);
   }
 
   private static async createTaskNote(path: string, task: Task, template:string): Promise<TFile> {
