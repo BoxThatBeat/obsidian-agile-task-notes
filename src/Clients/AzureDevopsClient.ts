@@ -15,7 +15,7 @@ export interface AzureDevopsSettings {
 }
 
 export const AZURE_DEVOPS_DEFAULT_SETTINGS: AzureDevopsSettings = {
-	instance: '',
+    instance: '',
   collection: '',
   project: '',
   team: '',
@@ -111,12 +111,19 @@ export class AzureDevopsClient implements ITfsClient{
       
       let tasks:Array<Task> = [];
       assignedTasks.forEach((task:any) => {
+
+        let assigneeName = 'Unassigned'
+		const assignee = task.fields["System.AssignedTo"] ?? null ;
+		if (assignee !== null) {
+			assigneeName = assignee["displayName"];
+		}
+
         tasks.push(new Task(
           task.id, 
           task.fields["System.State"], 
           task.fields["System.Title"], 
           task.fields["System.WorkItemType"], 
-          task.fields["System.AssignedTo"]["displayName"], 
+          assigneeName, 
           `https://${settings.azureDevopsSettings.instance}/${settings.azureDevopsSettings.collection}/${settings.azureDevopsSettings.project}/_workitems/edit/${task.id}`, 
           task.fields["System.Description"]));
       });
@@ -141,16 +148,16 @@ export class AzureDevopsClient implements ITfsClient{
   public setupSettings(container: HTMLElement, plugin: AgileTaskNotesPlugin, settingsTab: AgileTaskNotesPluginSettingTab): any {
     container.createEl('h2', {text: 'AzureDevops Remote Repo Settings'});
 
-		new Setting(container)
-			.setName('Instance')
-			.setDesc('TFS server name (ex: dev.azure.com/OrgName)')
-			.addText(text => text
-				.setPlaceholder('Enter instance base url')
-				.setValue(plugin.settings.azureDevopsSettings.instance)
-				.onChange(async (value) => {
-					plugin.settings.azureDevopsSettings.instance = value;
-					await plugin.saveSettings();
-				}));
+        new Setting(container)
+            .setName('Instance')
+            .setDesc('TFS server name (ex: dev.azure.com/OrgName)')
+            .addText(text => text
+                .setPlaceholder('Enter instance base url')
+                .setValue(plugin.settings.azureDevopsSettings.instance)
+                .onChange(async (value) => {
+                    plugin.settings.azureDevopsSettings.instance = value;
+                    await plugin.saveSettings();
+                }));
 
     new Setting(container)
     .setName('Collection')
