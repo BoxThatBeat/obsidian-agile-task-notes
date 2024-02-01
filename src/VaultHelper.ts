@@ -142,10 +142,34 @@ export class VaultHelper {
             .replace(/{{TASK_ASSIGNEDTO}}/g, task.assignedTo)
             .replace(/{{TASK_LINK}}/g, task.link);
 
+    if (task.dueDate) {
+      content.replace(/{{TASK_DUEDATE}}/g, task.dueDate);
+    } else {
+      content.replace(/{{TASK_DUEDATE}}/g, '');
+    }
+            
+    if (task.tags) {
+      content.replace(/{{TASK_TAGS}}/g, task.tags);
+    } else {
+      content.replace(/{{TASK_TAGS}}/g, '');
+    }
+
     if (task.desc != null) {
       content = content.replace(/{{TASK_DESCRIPTION}}/g, task.desc);
     } else {
       content = content.replace(/{{TASK_DESCRIPTION}}/g, '');
+    }
+
+    if (task.criteria != null) {
+      content = content.replace(/{{TASK_CRITERIA}}/g, task.criteria);
+    } else {
+      content = content.replace(/{{TASK_CRITERIA}}/g, '');
+    }
+
+    if (task.testScenarios != null) {
+      content = content.replace(/{{TASK_TESTS}}/g, task.testScenarios);
+    } else {
+      content = content.replace(/{{TASK_TESTS}}/g, '');
     }
 
     return app.vault.create(filepath, content);
