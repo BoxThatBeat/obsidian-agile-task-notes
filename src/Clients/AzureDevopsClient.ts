@@ -40,7 +40,14 @@ export class AzureDevopsClient implements ITfsClient{
       "Content-Type": "application/json"
     }
 
-    const BaseURL = `https://${settings.azureDevopsSettings.instance}/${settings.azureDevopsSettings.collection}/${settings.azureDevopsSettings.project}`;
+    let BaseURL = "";
+    
+    if (settings.azureDevopsSettings.collection) {
+      BaseURL = `https://${settings.azureDevopsSettings.instance}/${settings.azureDevopsSettings.collection}/${settings.azureDevopsSettings.project}`;
+    } else {
+      BaseURL = `https://${settings.azureDevopsSettings.instance}/${settings.azureDevopsSettings.project}`;
+    }
+    
 
     try {
       const iterationResponse = await requestUrl(
