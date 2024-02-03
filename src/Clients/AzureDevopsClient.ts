@@ -118,12 +118,16 @@ export class AzureDevopsClient implements ITfsClient{
           assigneeName = assignee["displayName"];
         }
 
-        // Gets the tags from Azure, removes semicolons and join multiword tags by a '-'
-        const tags = task.fields["System.Tags"].replace(/(; )(\w+) (\w+)(?=;|$)/g, '$1$2-$3').replace(/;/g, '');
-          
-        // converts UTC date to human readable date
-        const dueDate = new Date(task.fields["Microsoft.VSTS.Scheduling.DueDate"]).toLocaleDateString('en-GB');
+        let tags = task.fields["System.Tags"] ? task.fields["System.Tags"] : "";
+        let replacedTags = tags && /\w+ \w+/.test(tags) ? tags.replace(/; (\w+) (\w+)(?=;|$)/g, '; $1-$2').replace(/;/g, "") : tags;
+        
+        const tempDate = new Date(task.fields["Microsoft.VSTS.Scheduling.DueDate"])
+        const dueDate = tempDate && !isNaN(tempDate.getTime()) ? tempDate.toLocaleDateString("en-GB") : "";
 
+        const testScenarios = task.fields["Custom.Testscenarios"] ? task.fields["Custom.Testscenarios"] : "No test scenarios provided";
+        const acceptanceCriteria = task.fields["Microsoft.VSTS.Common.AcceptanceCriteria"] ? task.fields["Microsoft.VSTS.Common.AcceptanceCriteria"] : "No acceptance criteria provided";
+        const description = task.fields["System.Description"] ? task.fields["System.Description"] : "No description provided";
+        
         tasks.push(new Task(
           task.id, 
           task.fields["System.State"], 
@@ -131,11 +135,11 @@ export class AzureDevopsClient implements ITfsClient{
           task.fields["System.WorkItemType"], 
           assigneeName, 
           `https://${settings.azureDevopsSettings.instance}/${settings.azureDevopsSettings.collection}/${settings.azureDevopsSettings.project}/_workitems/edit/${task.id}`, 
-          task.fields["System.Description"],
-          task.fields["Microsoft.VSTS.Common.AcceptanceCriteria"],
-          task.fields["Custom.Testscenarios"],
+          description,
+          acceptanceCriteria,
+          testScenarios,
           dueDate,
-          tags));
+          replacedTags));
       });
 
       // Create markdown files based on remote task in current sprint

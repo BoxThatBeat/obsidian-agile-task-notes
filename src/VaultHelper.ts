@@ -142,16 +142,16 @@ export class VaultHelper {
             .replace(/{{TASK_ASSIGNEDTO}}/g, task.assignedTo)
             .replace(/{{TASK_LINK}}/g, task.link);
 
-    if (task.dueDate) {
-      content.replace(/{{TASK_DUEDATE}}/g, task.dueDate);
+    if (task.dueDate != null) {
+      content = content.replace(/{{TASK_DUEDATE}}/g, task.dueDate);
     } else {
-      content.replace(/{{TASK_DUEDATE}}/g, '');
+      content = content.replace(/{{TASK_DUEDATE}}/g, '');
     }
             
-    if (task.tags) {
-      content.replace(/{{TASK_TAGS}}/g, task.tags);
+    if (task.tags != null) {
+      content = content.replace(/{{TASK_TAGS}}/g, task.tags);
     } else {
-      content.replace(/{{TASK_TAGS}}/g, '');
+      content = content.replace(/{{TASK_TAGS}}/g, '');
     }
 
     if (task.desc != null) {
