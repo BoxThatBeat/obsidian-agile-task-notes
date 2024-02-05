@@ -118,8 +118,14 @@ export class AzureDevopsClient implements ITfsClient{
           assigneeName = assignee["displayName"];
         }
 
-        let tags = task.fields["System.Tags"] ? task.fields["System.Tags"] : "";
-        let replacedTags = tags && /\w+ \w+/.test(tags) ? tags.replace(/; (\w+) (\w+)(?=;|$)/g, '; $1-$2').replace(/;/g, "") : tags;
+        let tags = task.fields["System.Tags"] || "";
+        let replacedTags = tags.split(';')
+                                .map((part: string) => part.trim()
+                                    .split(' ')
+                                    .map(word => word.replace(/\s+/g, '-'))
+                                    .join('-'))
+                                .filter(Boolean)
+                                .join(' ');
         
         const tempDate = new Date(task.fields["Microsoft.VSTS.Scheduling.DueDate"])
         const dueDate = tempDate && !isNaN(tempDate.getTime()) ? tempDate.toLocaleDateString("en-GB") : "";
