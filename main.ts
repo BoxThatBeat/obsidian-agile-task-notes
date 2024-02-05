@@ -131,7 +131,7 @@ export class AgileTaskNotesPluginSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
     .setName('Inital Task Content')
-    .setDesc('Set the inital content for each new task note. Available variables: {{TASK_ID}}, {{TASK_TITLE}}, {{TASK_TYPE}}, {{TASK_STATE}}, {{TASK_ASSIGNEDTO}}, {{TASK_LINK}}, {{TASK_DESCRIPTION}}')
+    .setDesc('Set the inital content for each new task note. Available variables: {{TASK_ID}}, {{TASK_TITLE}}, {{TASK_TYPE}}, {{TASK_STATE}}, {{TASK_ASSIGNEDTO}}, {{TASK_LINK}}, {{TASK_DESCRIPTION}} Only For Azure: {{TASK_DUEDATE}} {{TASK_TAGS}} {{TASK_CRITERIA}} {{TASK_TESTS}}')
     .addTextArea(text => {
         text
             .setPlaceholder('Initial content in raw markdown format')
