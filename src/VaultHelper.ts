@@ -60,16 +60,6 @@ export class VaultHelper {
   }
 
   /**
-   * Formats a task filename in this format: "{type} - {id}"
-   * @param type - The type of task
-   * @param id - The ID of the task
-   * @public
-   */
-  // public static formatTaskFilename(settings: any.noteName: any): any {
-  //   return `settings.noteName`
-  // }
-
-  /**
    * Creates all task notes given the provided array of Tasks"
    * @param path - The path to create each task at
    * @param tasks - An array of Tasks
@@ -137,7 +127,6 @@ export class VaultHelper {
             .replace(/{{TASK_STATE}}/g, task.state)
             .replace(/{{TASK_TYPE}}/g, task.type.replace(/ /g,''))
             .replace(/{{TASK_ASSIGNEDTO}}/g, task.assignedTo);
-  //const filename = VaultHelper.formatTaskFilename(settings.noteName);
 
     const filepath = path + `/${filename}.md`;
 

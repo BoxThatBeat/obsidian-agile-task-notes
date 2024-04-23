@@ -31,7 +31,6 @@ export default class AgileTaskNotesPlugin extends Plugin {
 	settings: AgileTaskNotesSettings;
 
   tfsClientImplementations: { [key: string]: ITfsClient } = {};
-  app: App;
 
 	async onload() {
 
@@ -65,18 +64,18 @@ export default class AgileTaskNotesPlugin extends Plugin {
       this.registerInterval(window.setInterval(() => this.tfsClientImplementations[this.settings.selectedTfsClient].update(this.settings), this.settings.intervalMinutes * 60000));
     }
 	}
-  // addRibbonIcon(arg0: string, arg1: string, arg2: () => void) {
-  //   throw new Error('Method not implemented.');
-  // }
-  // addCommand(arg0: { id: string; name: string; callback: () => void; }) {
-  //   throw new Error('Method not implemented.');
-  // }
-  // addSettingTab(arg0: AgileTaskNotesPluginSettingTab) {
-  //   throw new Error('Method not implemented.');
-  // }
-  // registerInterval(arg0: number) {
-  //   throw new Error('Method not implemented.');
-  // }
+  addRibbonIcon(arg0: string, arg1: string, arg2: () => void) {
+    throw new Error('Method not implemented.');
+  }
+  addCommand(arg0: { id: string; name: string; callback: () => void; }) {
+    throw new Error('Method not implemented.');
+  }
+  addSettingTab(arg0: AgileTaskNotesPluginSettingTab) {
+    throw new Error('Method not implemented.');
+  }
+  registerInterval(arg0: number) {
+    throw new Error('Method not implemented.');
+  }
 
 	onunload() {
 
@@ -85,16 +84,16 @@ export default class AgileTaskNotesPlugin extends Plugin {
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	}
-  // loadData(): any {
-  //   throw new Error('Method not implemented.');
-  // }
+  loadData(): any {
+    throw new Error('Method not implemented.');
+  }
 
 	async saveSettings() {
 		await this.saveData(this.settings);
 	}
-  // saveData(settings: AgileTaskNotesSettings) {
-  //   throw new Error('Method not implemented.');
-  // }
+  saveData(settings: AgileTaskNotesSettings) {
+    throw new Error('Method not implemented.');
+  }
 }
 
 export class AgileTaskNotesPluginSettingTab extends PluginSettingTab {
