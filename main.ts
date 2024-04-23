@@ -76,7 +76,6 @@ export default class AgileTaskNotesPlugin extends Plugin {
 	async saveSettings() {
 		await this.saveData(this.settings);
 	}
-
 }
 
 export class AgileTaskNotesPluginSettingTab extends PluginSettingTab {
