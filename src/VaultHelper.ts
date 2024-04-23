@@ -65,9 +65,9 @@ export class VaultHelper {
    * @param id - The ID of the task
    * @public
    */
-  public static formatTaskFilename(type: string, id: string): string {
-    return `${type} - ${id}`
-  }
+  // public static formatTaskFilename(settings: any.noteName: any): any {
+  //   return `settings.noteName`
+  // }
 
   /**
    * Creates all task notes given the provided array of Tasks"
@@ -75,12 +75,12 @@ export class VaultHelper {
    * @param tasks - An array of Tasks
    * @public
    */
-  public static createTaskNotes(path: string, tasks: Array<Task>, template: string): Promise<TFile>[] {
+  public static createTaskNotes(path: string, tasks: Array<Task>, template: string, notename: string): Promise<TFile>[] {
 
     let promisesToCreateNotes: Promise<TFile>[] = [];
     tasks.forEach(task => {
       if (this.getFileByTaskId(path, task.id) == undefined) {
-        promisesToCreateNotes.push(this.createTaskNote(path, task, template));
+        promisesToCreateNotes.push(this.createTaskNote(path, task, template, notename));
       }
     });
 
@@ -130,8 +130,15 @@ export class VaultHelper {
     return app.vault.adapter.write(filepath, boardMD);
   }
 
-  private static async createTaskNote(path: string, task: Task, template:string): Promise<TFile> {
-    const filename = VaultHelper.formatTaskFilename(task.type, task.id);
+  private static async createTaskNote(path: string, task: Task, template:string, notename:string): Promise<TFile> {
+
+    let filename = notename
+            .replace(/{{TASK_ID}}/g, task.id)
+            .replace(/{{TASK_STATE}}/g, task.state)
+            .replace(/{{TASK_TYPE}}/g, task.type.replace(/ /g,''))
+            .replace(/{{TASK_ASSIGNEDTO}}/g, task.assignedTo);
+  //const filename = VaultHelper.formatTaskFilename(settings.noteName);
+
     const filepath = path + `/${filename}.md`;
 
     let content = template

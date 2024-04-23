@@ -129,7 +129,7 @@ export class AzureDevopsClient implements ITfsClient{
       });
 
       // Create markdown files based on remote task in current sprint
-      await Promise.all(VaultHelper.createTaskNotes(normalizedFolderPath, tasks, settings.noteTemplate))
+      await Promise.all(VaultHelper.createTaskNotes(normalizedFolderPath, tasks, settings.noteTemplate, settings.noteName))
         .catch(e => VaultHelper.logError(e));
       
       if (settings.createKanban) {

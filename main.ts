@@ -7,6 +7,7 @@ export interface AgileTaskNotesSettings {
   selectedTfsClient: string,
   targetFolder: string,
   noteTemplate: string,
+  noteName: string,
   intervalMinutes: number,
   createKanban: boolean,
   teamLeaderMode: boolean,
@@ -18,6 +19,7 @@ const DEFAULT_SETTINGS: AgileTaskNotesSettings = {
   selectedTfsClient: 'AzureDevops',
   targetFolder: '',
   noteTemplate: '# {{TASK_TITLE}}\n#{{TASK_TYPE}}\n\nid: {{TASK_ID}}\nstate: {{TASK_STATE}}\nAssignedTo: {{TASK_ASSIGNEDTO}}\n\nLink: {{TASK_LINK}}\n\n{{TASK_DESCRIPTION}}\n\n#todo:\n- [ ] Create todo list\n- [ ] \n\n## Notes:\n',
+  noteName: '{{TASK_TYPE}} - {{TASK_ID}}',
   intervalMinutes: 0,
   createKanban: true,
   teamLeaderMode: false,
@@ -29,6 +31,7 @@ export default class AgileTaskNotesPlugin extends Plugin {
 	settings: AgileTaskNotesSettings;
 
   tfsClientImplementations: { [key: string]: ITfsClient } = {};
+  app: App;
 
 	async onload() {
 
@@ -62,6 +65,18 @@ export default class AgileTaskNotesPlugin extends Plugin {
       this.registerInterval(window.setInterval(() => this.tfsClientImplementations[this.settings.selectedTfsClient].update(this.settings), this.settings.intervalMinutes * 60000));
     }
 	}
+  // addRibbonIcon(arg0: string, arg1: string, arg2: () => void) {
+  //   throw new Error('Method not implemented.');
+  // }
+  // addCommand(arg0: { id: string; name: string; callback: () => void; }) {
+  //   throw new Error('Method not implemented.');
+  // }
+  // addSettingTab(arg0: AgileTaskNotesPluginSettingTab) {
+  //   throw new Error('Method not implemented.');
+  // }
+  // registerInterval(arg0: number) {
+  //   throw new Error('Method not implemented.');
+  // }
 
 	onunload() {
 
@@ -70,10 +85,16 @@ export default class AgileTaskNotesPlugin extends Plugin {
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	}
+  // loadData(): any {
+  //   throw new Error('Method not implemented.');
+  // }
 
 	async saveSettings() {
 		await this.saveData(this.settings);
 	}
+  // saveData(settings: AgileTaskNotesSettings) {
+  //   throw new Error('Method not implemented.');
+  // }
 }
 
 export class AgileTaskNotesPluginSettingTab extends PluginSettingTab {
@@ -147,6 +168,16 @@ export class AgileTaskNotesPluginSettingTab extends PluginSettingTab {
         text.inputEl.rows = 8;
         text.inputEl.cols = 50;
     });
+    new Setting(containerEl)
+    .setName('Note Name')
+    .setDesc('Set the format of the file name for each task note. Available variables: {{TASK_ID}}, {{TASK_TYPE}}, {{TASK_STATE}}, {{TASK_ASSIGNEDTO}}')
+    .addText(text => text
+      .setPlaceholder('{{TASK_TYPE}} - {{TASK_ID}}')
+      .setValue(plugin.settings.noteName)
+      .onChange(async (value) => {
+        plugin.settings.noteName = value;
+        await plugin.saveSettings();
+      }));
 
     new Setting(containerEl)
     .setName('Update interval')
