@@ -113,7 +113,7 @@ export class JiraClient implements ITfsClient{
         });
 
         // Create markdown files based on remote task in current sprint
-        await Promise.all(VaultHelper.createTaskNotes(normalizedFolderPath, tasks, settings.noteTemplate));
+        await Promise.all(VaultHelper.createTaskNotes(normalizedFolderPath, tasks, settings.noteTemplate, settings.noteName));
         
         if (settings.createKanban) {
           
@@ -196,8 +196,8 @@ export class JiraClient implements ITfsClient{
         });
         
         // Create markdown files
-        await Promise.all(VaultHelper.createTaskNotes(normalizedBaseFolderPath, activeTasks, settings.noteTemplate));
-        await Promise.all(VaultHelper.createTaskNotes(normalizedCompletedfolderPath, completedTasks, settings.noteTemplate));
+        await Promise.all(VaultHelper.createTaskNotes(normalizedBaseFolderPath, activeTasks, settings.noteTemplate, settings.noteName));
+        await Promise.all(VaultHelper.createTaskNotes(normalizedCompletedfolderPath, completedTasks, settings.noteTemplate, settings.noteName));
         
         // Move pre-existing notes that became resolved state into the Completed folder and vise versa
         const completedTaskNoteFiles = completedTasks.map(task => VaultHelper.getFileByTaskId(settings.targetFolder, task.id)).filter((file): file is TFile => !!file);

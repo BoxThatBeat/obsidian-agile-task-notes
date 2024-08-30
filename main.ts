@@ -7,6 +7,7 @@ export interface AgileTaskNotesSettings {
   selectedTfsClient: string,
   targetFolder: string,
   noteTemplate: string,
+  noteName: string,
   intervalMinutes: number,
   createKanban: boolean,
   teamLeaderMode: boolean,
@@ -18,6 +19,7 @@ const DEFAULT_SETTINGS: AgileTaskNotesSettings = {
   selectedTfsClient: 'AzureDevops',
   targetFolder: '',
   noteTemplate: '# {{TASK_TITLE}}\n#{{TASK_TYPE}}\n\nid: {{TASK_ID}}\nstate: {{TASK_STATE}}\nAssignedTo: {{TASK_ASSIGNEDTO}}\n\nLink: {{TASK_LINK}}\n\n{{TASK_DESCRIPTION}}\n\n#todo:\n- [ ] Create todo list\n- [ ] \n\n## Notes:\n',
+  noteName: '{{TASK_TYPE}} - {{TASK_ID}}',
   intervalMinutes: 0,
   createKanban: true,
   teamLeaderMode: false,
@@ -61,7 +63,7 @@ export default class AgileTaskNotesPlugin extends Plugin {
     if (this.settings.intervalMinutes > 0) {
       this.registerInterval(window.setInterval(() => this.tfsClientImplementations[this.settings.selectedTfsClient].update(this.settings), this.settings.intervalMinutes * 60000));
     }
-	}
+  }
 
 	onunload() {
 
@@ -147,6 +149,16 @@ export class AgileTaskNotesPluginSettingTab extends PluginSettingTab {
         text.inputEl.rows = 8;
         text.inputEl.cols = 50;
     });
+    new Setting(containerEl)
+    .setName('Note Name')
+    .setDesc('Set the format of the file name for each task note. Available variables: {{TASK_ID}}, {{TASK_TYPE}}, {{TASK_STATE}}, {{TASK_ASSIGNEDTO}}')
+    .addText(text => text
+      .setPlaceholder('{{TASK_TYPE}} - {{TASK_ID}}')
+      .setValue(plugin.settings.noteName)
+      .onChange(async (value) => {
+        plugin.settings.noteName = value;
+        await plugin.saveSettings();
+      }));
 
     new Setting(containerEl)
     .setName('Update interval')
