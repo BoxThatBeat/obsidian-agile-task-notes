@@ -1,10 +1,9 @@
-import { Notice, TFile } from 'obsidian';
+import { App, Notice, TFile } from 'obsidian';
 import { Task } from './Task';
 
 export class VaultHelper {
-
-  private static BOARD_TEMPLATE_START: string = "---\n\nkanban-plugin: basic\n\n---\n\n";
-  private static BOARD_TEMPLATE_END: string = "\n%% kanban:settings\n\`\`\`\n{\"kanban-plugin\":\"basic\"}\n\`\`\`%%\"";
+  private static BOARD_TEMPLATE_START: string = '---\n\nkanban-plugin: basic\n\n---\n\n';
+  private static BOARD_TEMPLATE_END: string = '\n%% kanban:settings\n```\n{"kanban-plugin":"basic"}\n```%%"';
 
   /**
    * Logs an error and notifies user that an error occured
@@ -21,10 +20,9 @@ export class VaultHelper {
    * @param path - The path of folders to creates
    * @public
    */
-  public static createFolders(path: string): void {
+  public static createFolders(path: string, app: App): void {
     if (app.vault.getAbstractFileByPath(path) == null) {
-      app.vault.createFolder(path)
-      .catch(err => console.log(err));
+      app.vault.createFolder(path).catch((err) => console.log(err));
     }
   }
 
@@ -33,24 +31,23 @@ export class VaultHelper {
    * @param paths - The list of paths of folders to creates
    * @public
    */
-  public static createFoldersFromList(paths: string[]): void {
-    paths.forEach(path => this.createFolders(path));
+  public static createFoldersFromList(paths: string[], app: App): void {
+    paths.forEach((path) => this.createFolders(path, app));
   }
 
   /**
- * Will return a filehandle if the provided id is in the folder of the provided path
- * @param path - The vault path to search in
- * @param id - The string to search for in the path folder
- * @public
- */
-  public static getFileByTaskId(path: string, id: string) : TFile | undefined {
+   * Will return a filehandle if the provided id is in the folder of the provided path
+   * @param path - The vault path to search in
+   * @param id - The string to search for in the path folder
+   * @public
+   */
+  public static getFileByTaskId(path: string, id: string, app: App): TFile | undefined {
     const files = app.vault.getMarkdownFiles();
 
     const projectPath = path.slice(0, path.lastIndexOf('/')); // Remove the specific sprint since files can be in old sprints
 
     for (let i = 0; i < files.length; i++) {
-
-      let filePath = files[i].path
+      let filePath = files[i].path;
       if (filePath.startsWith(projectPath) && filePath.contains(id)) {
         return files[i];
       }
@@ -65,19 +62,24 @@ export class VaultHelper {
    * @param tasks - An array of Tasks
    * @public
    */
-  public static createTaskNotes(path: string, tasks: Array<Task>, template: string, notename: string): Promise<TFile>[] {
-
+  public static createTaskNotes(
+    path: string,
+    tasks: Array<Task>,
+    template: string,
+    notename: string,
+    app: App
+  ): Promise<TFile>[] {
     let promisesToCreateNotes: Promise<TFile>[] = [];
-    tasks.forEach(task => {
-      if (this.getFileByTaskId(path, task.id) == undefined) {
-        promisesToCreateNotes.push(this.createTaskNote(path, task, template, notename));
+    tasks.forEach((task) => {
+      if (this.getFileByTaskId(path, task.id, app) == undefined) {
+        promisesToCreateNotes.push(this.createTaskNote(path, task, template, notename, app));
       }
     });
 
     return promisesToCreateNotes;
   }
 
-   /**
+  /**
    * Builds up a markdown file that represents a Kanban board for the sprint. Utilizes the format for the Kanban plugin"
    * @param path - The path to create each task at
    * @param tasks - An array of Tasks
@@ -85,7 +87,14 @@ export class VaultHelper {
    * @param prefix - The prefix to add to the kanban board name
    * @public
    */
-  public static createKanbanBoard(path: string, tasks: Array<Task>, columns: Array<string>, prefix: string, teamLeaderMode: boolean): Promise<void> {
+  public static createKanbanBoard(
+    path: string,
+    tasks: Array<Task>,
+    columns: Array<string>,
+    prefix: string,
+    teamLeaderMode: boolean,
+    app: App
+  ): Promise<void> {
     const filename = `${prefix}-Board`;
     const filepath = path + `/${filename}.md`;
 
@@ -93,26 +102,24 @@ export class VaultHelper {
 
     // Create Kanban board with specified columns matching the state of each task
     columns.forEach((column: string) => {
-      boardMD += "## ";
+      boardMD += '## ';
       boardMD += column;
-      boardMD += "\n";
+      boardMD += '\n';
 
       tasks.forEach((task: Task) => {
         if (task.state === column) {
-          var file = this.getFileByTaskId(path, task.id);
+          let file = this.getFileByTaskId(path, task.id, app);
           if (file != undefined) {
-
             if (teamLeaderMode) {
-              boardMD += `- [ ] [[${file.basename}]] \n ${task.assignedTo} \n ${task.title}\n`
+              boardMD += `- [ ] [[${file.basename}]] \n ${task.assignedTo} \n ${task.title}\n`;
             } else {
-              boardMD += `- [ ] [[${file.basename}]] \n ${task.title}\n`
+              boardMD += `- [ ] [[${file.basename}]] \n ${task.title}\n`;
             }
-
           }
         }
       });
 
-      boardMD += "\n";
+      boardMD += '\n';
     });
 
     boardMD += this.BOARD_TEMPLATE_END;
@@ -120,30 +127,35 @@ export class VaultHelper {
     return app.vault.adapter.write(filepath, boardMD);
   }
 
-  private static async createTaskNote(path: string, task: Task, template:string, notename:string): Promise<TFile> {
-
+  private static async createTaskNote(
+    path: string,
+    task: Task,
+    template: string,
+    notename: string,
+    app: App
+  ): Promise<TFile> {
     let filename = notename
-            .replace(/{{TASK_ID}}/g, task.id)
-            .replace(/{{TASK_STATE}}/g, task.state)
-            .replace(/{{TASK_TYPE}}/g, task.type.replace(/ /g,''))
-            .replace(/{{TASK_ASSIGNEDTO}}/g, task.assignedTo);
+      .replace(/{{TASK_ID}}/g, task.id)
+      .replace(/{{TASK_STATE}}/g, task.state)
+      .replace(/{{TASK_TYPE}}/g, task.type.replace(/ /g, ''))
+      .replace(/{{TASK_ASSIGNEDTO}}/g, task.assignedTo);
 
     const filepath = path + `/${filename}.md`;
 
     let content = template
-            .replace(/{{TASK_ID}}/g, task.id)
-            .replace(/{{TASK_TITLE}}/g, task.title)
-            .replace(/{{TASK_STATE}}/g, task.state)
-            .replace(/{{TASK_TYPE}}/g, task.type.replace(/ /g,''))
-            .replace(/{{TASK_ASSIGNEDTO}}/g, task.assignedTo)
-            .replace(/{{TASK_LINK}}/g, task.link);
+      .replace(/{{TASK_ID}}/g, task.id)
+      .replace(/{{TASK_TITLE}}/g, task.title)
+      .replace(/{{TASK_STATE}}/g, task.state)
+      .replace(/{{TASK_TYPE}}/g, task.type.replace(/ /g, ''))
+      .replace(/{{TASK_ASSIGNEDTO}}/g, task.assignedTo)
+      .replace(/{{TASK_LINK}}/g, task.link);
 
     if (task.dueDate != null) {
       content = content.replace(/{{TASK_DUEDATE}}/g, task.dueDate);
     } else {
       content = content.replace(/{{TASK_DUEDATE}}/g, '');
     }
-            
+
     if (task.tags != null) {
       content = content.replace(/{{TASK_TAGS}}/g, task.tags);
     } else {

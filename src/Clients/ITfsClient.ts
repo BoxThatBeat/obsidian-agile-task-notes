@@ -1,10 +1,10 @@
-import AgileTaskNotesPlugin,  { AgileTaskNotesPluginSettingTab } from "main";
+import AgileTaskNotesPlugin, { AgileTaskNotesPluginSettingTab } from 'main';
+import { App } from 'obsidian';
 
 /**
  * An interface describing a TFS backend implementation
  */
 export interface ITfsClient {
-  
   /**
    * The title of the client in string format
    */
