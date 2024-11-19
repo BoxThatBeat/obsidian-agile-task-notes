@@ -13,6 +13,7 @@ export interface AgileTaskNotesSettings {
   teamLeaderMode: boolean;
   azureDevopsSettings: AzureDevopsSettings;
   jiraSettings: JiraSettings;
+  TaskTitleSeparator: string;
 }
 
 const DEFAULT_SETTINGS: AgileTaskNotesSettings = {
@@ -26,6 +27,7 @@ const DEFAULT_SETTINGS: AgileTaskNotesSettings = {
   teamLeaderMode: false,
   azureDevopsSettings: AZURE_DEVOPS_DEFAULT_SETTINGS,
   jiraSettings: JIRA_DEFAULT_SETTINGS,
+  TaskTitleSeparator: '-',
 };
 
 export default class AgileTaskNotesPlugin extends Plugin {
@@ -156,7 +158,7 @@ export class AgileTaskNotesPluginSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName('Note Name')
       .setDesc(
-        'Set the format of the file name for each task note. Available variables: {{TASK_ID}}, {{TASK_TYPE}}, {{TASK_STATE}}, {{TASK_ASSIGNEDTO}}'
+        'Set the format of the file name for each task note. Available variables: {{TASK_ID}}, {{TASK_TYPE}}, {{TASK_STATE}}, {{TASK_ASSIGNEDTO}}, {{TASK_TITLE}}, {{TASK_TITLEPART_0}}, {{TASK_TITLEPART_1}}, {{TASK_TITLEPART_2}}\n Note: Titleparts that are empty will default to the whole title'
       )
       .addText((text) =>
         text
@@ -164,6 +166,21 @@ export class AgileTaskNotesPluginSettingTab extends PluginSettingTab {
           .setValue(plugin.settings.noteName)
           .onChange(async (value) => {
             plugin.settings.noteName = value;
+            await plugin.saveSettings();
+          })
+      );
+
+      new Setting(containerEl)
+      .setName('TaskTitle Separator')
+      .setDesc(
+        'Seperator that seperates the title parts in {{TASK_TITLEPART_0}}, {{TASK_TITLEPART_1}}, {{TASK_TITLEPART_2}}/n'
+      )
+      .addText((text) =>
+        text
+          .setPlaceholder('-')
+          .setValue(plugin.settings.TaskTitleSeparator)
+          .onChange(async (value) => {
+            plugin.settings.TaskTitleSeparator = value;
             await plugin.saveSettings();
           })
       );

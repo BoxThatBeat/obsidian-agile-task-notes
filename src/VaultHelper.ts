@@ -1,5 +1,6 @@
 import { App, Notice, TFile } from 'obsidian';
 import { Task } from './Task';
+import { AgileTaskNotesSettings } from 'main';
 
 export class VaultHelper {
   private static BOARD_TEMPLATE_START: string = '---\n\nkanban-plugin: basic\n\n---\n\n';
@@ -128,18 +129,28 @@ export class VaultHelper {
   }
 
   private static async createTaskNote(
+    settings: AgileTaskNotesSettings,
     path: string,
     task: Task,
     template: string,
     notename: string,
     app: App
   ): Promise<TFile> {
+
+    let taskTitleArray = task.title.split(settings.TaskTitleSeparator);
+    let taskTitlePart0 = taskTitleArray[0] ?? task.title;
+    let taskTitlePart1 = taskTitleArray[1] ?? task.title;
+    let taskTitlePart2 = taskTitleArray[2] ?? task.title;
+
     let filename = notename
       .replace(/{{TASK_ID}}/g, task.id)
       .replace(/{{TASK_STATE}}/g, task.state)
       .replace(/{{TASK_TYPE}}/g, task.type.replace(/ /g, ''))
-      .replace(/{{TASK_ASSIGNEDTO}}/g, task.assignedTo)	  
-	  .replace(/{{TASK_TITLE}}/g, task.title);
+      .replace(/{{TASK_ASSIGNEDTO}}/g, task.assignedTo)
+      .replace(/{{TASK_TITLE}}/g, task.title)
+      .replace(/{{TASK_TITLEPART_0}}/g, taskTitlePart0)
+      .replace(/{{TASK_TITLEPART_1}}/g, taskTitlePart1)
+      .replace(/{{TASK_TITLEPART_2}}/g, taskTitlePart2);
 
     //remove illegal filename characters from filename
     filename = filename.replace(/[<>:"/\\|?*]/g, ""); 
