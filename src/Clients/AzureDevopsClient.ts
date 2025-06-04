@@ -34,6 +34,10 @@ export class AzureDevopsClient implements ITfsClient {
   constructor(private app: App) {}
 
   public async update(settings: AgileTaskNotesSettings): Promise<void> {
+    // Clean up instance URL - remove protocol if included
+    let instance = settings.azureDevopsSettings.instance;
+    instance = instance.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    
     const encoded64PAT = Buffer.from(`:${settings.azureDevopsSettings.accessToken}`).toString('base64');
 
     const headers = {
@@ -44,9 +48,9 @@ export class AzureDevopsClient implements ITfsClient {
     let BaseURL = '';
 
     if (settings.azureDevopsSettings.collection) {
-      BaseURL = `https://${settings.azureDevopsSettings.instance}/${settings.azureDevopsSettings.collection}/${settings.azureDevopsSettings.project}`;
+      BaseURL = `https://${instance}/${settings.azureDevopsSettings.collection}/${settings.azureDevopsSettings.project}`;
     } else {
-      BaseURL = `https://${settings.azureDevopsSettings.instance}/${settings.azureDevopsSettings.project}`;
+      BaseURL = `https://${instance}/${settings.azureDevopsSettings.project}`;
     }
 
     try {
@@ -194,10 +198,10 @@ export class AzureDevopsClient implements ITfsClient {
 
     new Setting(container)
       .setName('Instance')
-      .setDesc('TFS server name (ex: dev.azure.com/OrgName)')
+      .setDesc('Azure DevOps base URL. For cloud: "dev.azure.com/YourOrganization". For on-premises: "yourserver.com" only. Protocol (http:// or https://) will be automatically removed.')
       .addText((text) =>
         text
-          .setPlaceholder('Enter instance base url')
+          .setPlaceholder('dev.azure.com/YourOrganization')
           .setValue(plugin.settings.azureDevopsSettings.instance)
           .onChange(async (value) => {
             plugin.settings.azureDevopsSettings.instance = value;
@@ -207,10 +211,10 @@ export class AzureDevopsClient implements ITfsClient {
 
     new Setting(container)
       .setName('Collection')
-      .setDesc('The name of the Azure DevOps collection (leave empty if it does not apply)')
+      .setDesc('ONLY for on-premises Azure DevOps Server (e.g., "DefaultCollection"). Leave EMPTY for Azure DevOps Services (dev.azure.com).')
       .addText((text) =>
         text
-          .setPlaceholder('Enter Collection Name')
+          .setPlaceholder('Leave empty for cloud')
           .setValue(plugin.settings.azureDevopsSettings.collection)
           .onChange(async (value) => {
             plugin.settings.azureDevopsSettings.collection = value;
