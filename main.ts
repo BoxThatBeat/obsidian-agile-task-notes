@@ -161,7 +161,7 @@ export class AgileTaskNotesPluginSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName('Note Name')
       .setDesc(
-        'Set the format of the file name for each task note. Available variables: {{TASK_ID}}, {{TASK_TYPE}}, {{TASK_STATE}}, {{TASK_ASSIGNEDTO}}'
+        'Set the format of the file name for each task note. Available variables: {{TASK_ID}}, {{TASK_NAME}}, {{TASK_TYPE}}, {{TASK_STATE}}, {{TASK_ASSIGNEDTO}}'
       )
       .addText((text) =>
         text

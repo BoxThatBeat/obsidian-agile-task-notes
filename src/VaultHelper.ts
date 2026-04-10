@@ -134,7 +134,10 @@ export class VaultHelper {
     notename: string,
     app: App
   ): Promise<TFile> {
+    const safeTitle = task.title.replace(/[\\/:*?"<>|]/g, '-');
+
     let filename = notename
+      .replace(/{{TASK_NAME}}/g, safeTitle)
       .replace(/{{TASK_ID}}/g, task.id)
       .replace(/{{TASK_STATE}}/g, task.state)
       .replace(/{{TASK_TYPE}}/g, task.type.replace(/ /g, ''))
