@@ -1,5 +1,6 @@
 import { App, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import { AzureDevopsClient, AzureDevopsSettings, AZURE_DEVOPS_DEFAULT_SETTINGS } from 'src/Clients/AzureDevopsClient';
+import { GitlabClient, GitlabSettings, GITLAB_DEFAULT_SETTINGS } from 'src/Clients/GitlabClient';
 import { ITfsClient } from './src/Clients/ITfsClient';
 import { JiraClient, JiraSettings, JIRA_DEFAULT_SETTINGS } from './src/Clients/JiraClient';
 
@@ -13,6 +14,7 @@ export interface AgileTaskNotesSettings {
   teamLeaderMode: boolean;
   azureDevopsSettings: AzureDevopsSettings;
   jiraSettings: JiraSettings;
+  gitlabSettings: GitlabSettings;
 }
 
 const DEFAULT_SETTINGS: AgileTaskNotesSettings = {
@@ -26,6 +28,7 @@ const DEFAULT_SETTINGS: AgileTaskNotesSettings = {
   teamLeaderMode: false,
   azureDevopsSettings: AZURE_DEVOPS_DEFAULT_SETTINGS,
   jiraSettings: JIRA_DEFAULT_SETTINGS,
+  gitlabSettings: GITLAB_DEFAULT_SETTINGS,
 };
 
 export default class AgileTaskNotesPlugin extends Plugin {
@@ -37,9 +40,11 @@ export default class AgileTaskNotesPlugin extends Plugin {
     // Add TFS backend implmentations
     const azureDevopsClient: ITfsClient = new AzureDevopsClient(this.app);
     const jiraClient: ITfsClient = new JiraClient(this.app);
+    const gitlabClient: ITfsClient = new GitlabClient(this.app);
 
     this.tfsClientImplementations[azureDevopsClient.clientName] = azureDevopsClient;
     this.tfsClientImplementations[jiraClient.clientName] = jiraClient;
+    this.tfsClientImplementations[gitlabClient.clientName] = gitlabClient;
 
     await this.loadSettings();
 
@@ -136,7 +141,7 @@ export class AgileTaskNotesPluginSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName('Inital Task Content')
       .setDesc(
-        'Set the inital content for each new task note. Available variables: {{TASK_ID}}, {{TASK_TITLE}}, {{TASK_TYPE}}, {{TASK_STATE}}, {{TASK_ASSIGNEDTO}}, {{TASK_LINK}}, {{TASK_DESCRIPTION}} Only For Azure: {{TASK_DUEDATE}} {{TASK_TAGS}} {{TASK_CRITERIA}} {{TASK_TESTS}}'
+        'Set the inital content for each new task note. Available variables: {{TASK_ID}}, {{TASK_TITLE}}, {{TASK_TYPE}}, {{TASK_STATE}}, {{TASK_ASSIGNEDTO}}, {{TASK_LINK}}, {{TASK_DESCRIPTION}} Azure/GitLab: {{TASK_DUEDATE}} {{TASK_TAGS}} Azure only: {{TASK_CRITERIA}} {{TASK_TESTS}}'
       )
       .addTextArea((text) => {
         text
