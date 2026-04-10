@@ -1,6 +1,6 @@
 {
   "name": "obsidian-agile-task-notes",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Automated grabbing of tasks from TFS (AzureDevops or Jira)",
   "main": "main.js",
   "scripts": {
