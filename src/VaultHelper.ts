@@ -141,7 +141,11 @@ export class VaultHelper {
       .replace(/{{TASK_ID}}/g, task.id)
       .replace(/{{TASK_STATE}}/g, task.state)
       .replace(/{{TASK_TYPE}}/g, task.type.replace(/ /g, ''))
-      .replace(/{{TASK_ASSIGNEDTO}}/g, task.assignedTo);
+      .replace(/{{TASK_ASSIGNEDTO}}/g, task.assignedTo)	  
+	  .replace(/{{TASK_TITLE}}/g, task.title);
+
+    //remove illegal filename characters from filename
+    filename = filename.replace(/[<>:"/\\|?*]/g, ""); 
 
     const filepath = path + `/${filename}.md`;
 
